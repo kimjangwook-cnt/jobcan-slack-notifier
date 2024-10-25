@@ -8,7 +8,7 @@ class JobCanNotifyController extends Controller
 {
     public function index()
     {
-        $insertedList = JobCanService::trigger(JobCanService::COMPLETED_REQUEST);
+        $insertedList = JobCanService::trigger(JobCanService::COMPLETED_REQUEST, ['period' => 60 * 8]);
 
         return response()->json($insertedList);
     }

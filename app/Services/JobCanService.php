@@ -10,10 +10,11 @@ class JobCanService
 {
     const COMPLETED_REQUEST = 1;
 
-    public static function trigger($type)
+    public static function trigger($type, $options = [])
     {
         if ($type == self::COMPLETED_REQUEST) {
-            $jobCanList = self::getCompletedRequest();
+            $period = $options['period'] ?? 30;
+            $jobCanList = self::getCompletedRequest(null, $period);
             $insertedList = JobCanRequest::upsertAll($jobCanList);
 
             if (count($insertedList) > 0) {
@@ -37,9 +38,9 @@ class JobCanService
         ]);
     }
 
-    public static function getCompletedRequest($path = null)
+    public static function getCompletedRequest($path = null, $period = 30)
     {
-        $completedAfter = now()->subMinutes(30)->format('Y/m/d H:i:s');
+        $completedAfter = now()->subMinutes($period)->format('Y/m/d H:i:s');
         $path = $path ?? 'v2/requests/?status=completed&completed_after=' . $completedAfter;
 
 
