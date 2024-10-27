@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class IpRestrictionMiddleware
@@ -19,6 +20,7 @@ class IpRestrictionMiddleware
         $ip = $request->ip();
 
         if (in_array($ip, $blockedIps)) {
+            Log::info('IP 制限: ' . $ip);
             return response()->json(['message' => 'You are not allowed to access this service.'], 403);
         }
 
