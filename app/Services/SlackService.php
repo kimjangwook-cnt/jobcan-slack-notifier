@@ -17,11 +17,10 @@ class SlackService
 
         $blocks = [
             [
-                'type' => 'header',
+                'type' => 'section',
                 'text' => [
                     'type' => 'plain_text',
-                    'text' => '下記のリクエストが完了になりました。',
-                    'emoji' => true
+                    'text' => '下記の申請が完了しました',
                 ]
             ],
         ];
