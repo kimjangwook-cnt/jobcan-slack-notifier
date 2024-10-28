@@ -13,7 +13,7 @@ class JobCanService
     public static function trigger($type, $options = [])
     {
         if ($type == self::COMPLETED_REQUEST) {
-            $period = $options['period'] ?? 60 * 24 * 7;
+            $period = $options['period'] ?? 60 * 24 * 10;
             $jobCanList = self::getCompletedRequest(null, $period);
             $insertedList = JobCanRequest::upsertAll($jobCanList);
 

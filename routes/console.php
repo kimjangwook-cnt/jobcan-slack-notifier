@@ -14,8 +14,8 @@ Schedule::call(function () {
 })
     ->timezone('Asia/Tokyo')
     ->weekdays()
-    ->everyMinute()
-    ->between('09:30', '20:00')
+    ->everyFiveMinutes()
+    ->between('09:30', '19:30')
     ->skip(function () {
         $today = Carbon::now();
         $holidays = Yasumi::create('Japan', $today->format('Y'), 'ja_JP');

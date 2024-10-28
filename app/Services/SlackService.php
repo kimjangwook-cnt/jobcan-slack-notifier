@@ -26,14 +26,15 @@ class SlackService
         ];
 
         foreach ($list as $item) {
-            $id = $item['id'];
-            $title = $item['title'];
+            $id = $item['id'] ?? 'NO-ID';
+            $title = $item['title'] ?? 'タイトル取得不可';
+            $applicant = ($item['applicant_last_name'] ?? '') . ' '($item['applicant_first_name'] ?? '');
 
             $blocks[] = [
                 'type' => 'section',
                 'text' => [
                     'type' => 'mrkdwn',
-                    'text' => "- <https://ssl.wf.jobcan.jp/#/requests/{$id}/|{$title}>"
+                    'text' => "- <https://ssl.wf.jobcan.jp/#/requests/{$id}/|{$title}({$applicant})>"
                 ],
             ];
         }
