@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Facades\Log;
+
 class JobCanRequest extends BaseModel
 {
     protected $table = 'job_can_requests';
@@ -87,8 +89,14 @@ class JobCanRequest extends BaseModel
             if ($inDb->contains('id', $parsedInfo['id'])) {
                 $inDb->find($parsedInfo['id'])->update($parsedInfo);
             } else {
-                $insertList[] = $parsedInfo;
-                JobCanRequest::create($parsedInfo);
+                $targetForm = config('env.jobcan_target_form');
+                if (in_array($parsedInfo['form_id'], $targetForm)) {
+                    $insertList[] = $parsedInfo;
+                    JobCanRequest::create($parsedInfo);
+                    Log::info("完了した依頼: 【" . $parsedInfo['form_id'] . "】 " . $parsedInfo['title']);
+                } else {
+                    Log::info("完了したが対象外の依頼: 【" . $parsedInfo['form_id'] . "】 " . $parsedInfo['title']);
+                }
             }
         }
 

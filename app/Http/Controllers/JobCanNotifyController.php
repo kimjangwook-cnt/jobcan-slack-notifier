@@ -12,4 +12,11 @@ class JobCanNotifyController extends Controller
 
         return response()->json($insertedList);
     }
+
+    public function forms()
+    {
+        $forms = JobCanService::getForms();
+
+        return response()->json($forms);
+    }
 }

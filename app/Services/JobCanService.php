@@ -58,4 +58,23 @@ class JobCanService
 
         return $results;
     }
+
+    public static function getForms($path = null)
+    {
+        $path = $path ?? 'v1/forms';
+
+        $client = self::getClient();
+        $response = $client->request('GET', $path);
+
+        $responseBody = json_decode($response->getBody(), true);
+        $nextPath = $responseBody['next'] ?? false;
+        $results = $responseBody['results'] ?? [];
+
+        if ($nextPath) {
+            $nextResults = self::getForms($nextPath);
+            $results = array_merge($results, $nextResults);
+        }
+
+        return $results;
+    }
 }
