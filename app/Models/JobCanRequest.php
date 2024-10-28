@@ -94,8 +94,6 @@ class JobCanRequest extends BaseModel
                     $insertList[] = $parsedInfo;
                     JobCanRequest::create($parsedInfo);
                     Log::info("完了した依頼: 【" . $parsedInfo['form_id'] . "】 " . $parsedInfo['title']);
-                } else {
-                    Log::info("完了したが対象外の依頼: 【" . $parsedInfo['form_id'] . "】 " . $parsedInfo['title']);
                 }
             }
         }
