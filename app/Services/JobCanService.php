@@ -43,20 +43,27 @@ class JobCanService
         $completedAfter = now()->subMinutes($period)->format('Y/m/d H:i:s');
         $path = $path ?? 'v2/requests/?status=completed&completed_after=' . $completedAfter;
 
+        try {
 
-        $client = self::getClient();
-        $response = $client->request('GET', $path);
 
-        $responseBody = json_decode($response->getBody(), true);
-        $nextPath = $responseBody['next'] ?? false;
-        $results = $responseBody['results'] ?? [];
+            $client = self::getClient();
+            $response = $client->request('GET', $path);
 
-        if ($nextPath) {
-            $nextResults = self::getCompletedRequest($nextPath);
-            $results = array_merge($results, $nextResults);
+            $responseBody = json_decode($response->getBody(), true);
+            $nextPath = $responseBody['next'] ?? false;
+            $results = $responseBody['results'] ?? [];
+
+            if ($nextPath) {
+                $nextResults = self::getCompletedRequest($nextPath);
+                $results = array_merge($results, $nextResults);
+            }
+
+            return $results;
+        } catch (\Exception $e) {
+            Log::error("JobCanからRequest取得失敗: " . $e->getMessage());
+
+            return [];
         }
-
-        return $results;
     }
 
     public static function getForms($path = null)
