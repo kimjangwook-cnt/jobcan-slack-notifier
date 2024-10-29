@@ -43,15 +43,21 @@ class SlackService
                 'type' => 'rich_text',
                 'elements' => [
                     [
-                        'text' => '下記の申請が完了しました',
+                        "type" => "rich_text_section",
+                        "elements" => [
+                            [
+                                "type" => "text",
+                                "text" => "下記の申請が完了しました\n"
+                            ],
+                        ]
+                    ],
+                    [
+                        'type' => 'rich_text_list',
+                        'style' => 'bullet',
+                        'elements' => $textList,
                     ],
                 ],
             ],
-            [
-                'type' => 'rich_text_list',
-                'style' => 'bullet',
-                'elements' => $textList,
-            ]
         ];
 
         try {
