@@ -19,7 +19,11 @@ class IpRestrictionMiddleware
         $blockedIps = config('env.ip_restriction');
         $ip = $request->ip();
 
-        if (!in_array($ip, $blockedIps) || $request->get('admin_key') !== config('env.admin_key')) {
+        if ($request->input('admin_key') !== config('env.admin_key')) {
+            return $next($request);
+        }
+
+        if (!in_array($ip, $blockedIps)) {
             Log::info('IP 制限: ' . $ip);
             return response()->json(['message' => 'You are not allowed to access this service.'], 403);
         }
