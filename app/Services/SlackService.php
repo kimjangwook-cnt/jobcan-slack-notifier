@@ -54,12 +54,15 @@ class SlackService
             ]
         ];
 
+        try {
+            $response = Http::post($slackWebhookUrl, [
+                'blocks' => $blocks,
+            ]);
+            return $response->getBody()->getContents();
+        } catch (\Exception $e) {
+            Log::error("Slack通知失敗: " . $e->getMessage());
+        }
 
-        $response = Http::post($slackWebhookUrl, [
-            'blocks' => $blocks,
-        ]);
-
-        // $this->notify(new \App\Notifications\TestSlackNotification());
-        return $response->getBody()->getContents();
+        return '';
     }
 }
