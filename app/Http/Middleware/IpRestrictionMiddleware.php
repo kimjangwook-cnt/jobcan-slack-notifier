@@ -16,15 +16,17 @@ class IpRestrictionMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $blockedIps = config('env.ip_restriction');
+        $allowedIps = config('env.allowed_ips');
         $ip = $request->ip();
 
-        if ($request->input('admin_key') !== config('env.admin_key')) {
+
+        if ($request->input('admin_key') === config('env.admin_key')) {
             return $next($request);
         }
 
-        if (!in_array($ip, $blockedIps)) {
+        if (!in_array($ip, $allowedIps)) {
             Log::info('IP 制限: ' . $ip);
+
             return response()->json(['message' => 'You are not allowed to access this service.'], 403);
         }
 

@@ -9,7 +9,7 @@ return [
     ],
     'slack_webhook_url' => env('SLACK_WEBHOOK_URL'),
     'admin_key' => env('ADMIN_KEY'),
-    'ip_restriction' => [
+    'allowed_ips' => [
         # LOCAL
         '127.0.0.1',
 
