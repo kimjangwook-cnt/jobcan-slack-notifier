@@ -55,6 +55,8 @@
     <main class="container mx-auto px-4 py-6 flex-grow mt-16">
         @yield('content')
     </main>
+
+    @yield('script')
 </body>
 
 </html>

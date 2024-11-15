@@ -26,20 +26,20 @@
         </div>
 
         <script>
-            function updateFileName(input) {
-                const fileNameDisplay = document.getElementById('fileNameDisplay');
-                fileNameDisplay.textContent = input.files[0] ? input.files[0].name : 'ZIPファイルを選択してください';
-            }
         </script>
 
         <div class="mt-4">
             <label for="quality" class="block text-sm font-medium text-gray-700">圧縮率（画質）</label>
             <div class="flex items-center gap-2">
                 <input type="range" name="quality" id="quality" min="0" max="100" value="90"
-                    class="w-full" oninput="qualityValue.value = this.value">
-                <output id="qualityValue" class="text-sm">90</output>
+                    class="w-full" oninput="updateQuality(this.value)">
+                <input type="number" id="qualityNumber" value="90" min="0" max="100"
+                    class="w-16 text-sm border rounded p-1" oninput="updateQuality(this.value)">
             </div>
         </div>
+
+        <script>
+        </script>
 
         @error('zip_file')
         <p class="text-red-500 text-sm mt-2">{{ $message }}</p>
@@ -62,51 +62,6 @@
                 <p class="text-sm text-gray-600">しばらくお待ちください</p>
             </div>
         </div>
-
-        <script>
-            function handleSubmit(event) {
-                event.preventDefault(); // フォームのデフォルトの送信を防ぐ
-                document.getElementById('loadingOverlay').classList.remove('hidden');
-                // document.getElementById('submitButton').disabled = true;
-                // document.getElementById('zip_file').disabled = true;
-                // document.getElementById('quality').disabled = true;
-
-                // フォームを送信
-                const form = document.getElementById('uploadForm');
-                const formData = new FormData(form);
-
-                fetch(form.action, {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('変換に失敗しました');
-                        }
-                        return response.blob();
-                    })
-                    .then(blob => {
-                        // ダウンロードリンクを作成して自動クリック
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = 'converted_images.zip';
-                        document.body.appendChild(a);
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-                    })
-                    .catch(error => {
-                        console.error('エラー:', error);
-                        alert('処理中にエラーが発生しました。時間をおいて再度お試しください。');
-                    })
-                    .finally(() => {
-                        document.getElementById('uploadForm').reset();
-                        document.getElementById('fileNameDisplay').textContent = 'ZIPファイルを選択してください';
-                        document.getElementById('qualityValue').textContent = 90;
-                        document.getElementById('loadingOverlay').classList.add('hidden');
-                    });
-            }
-        </script>
 
         @if (session('error'))
         <div class="my-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
@@ -153,4 +108,67 @@
         </div>
     </div>
 </div>
+@endsection
+
+@section('script')
+<script>
+    function handleSubmit(event) {
+        event.preventDefault(); // フォームのデフォルトの送信を防ぐ
+        document.getElementById('loadingOverlay').classList.remove('hidden');
+        // document.getElementById('submitButton').disabled = true;
+        // document.getElementById('zip_file').disabled = true;
+        // document.getElementById('quality').disabled = true;
+
+        // フォームを送信
+        const form = document.getElementById('uploadForm');
+        const formData = new FormData(form);
+
+        fetch(form.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('変換に失敗しました');
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                // ダウンロードリンクを作成して自動クリック
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'converted_images.zip';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => {
+                console.error('エラー:', error);
+                alert('処理中にエラーが発生しました。時間をおいて再度お試しください。');
+            })
+            .finally(() => {
+                document.getElementById('uploadForm').reset();
+                document.getElementById('fileNameDisplay').textContent = 'ZIPファイルを選択してください';
+                document.getElementById('qualityNumber').value = 90;
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            });
+    }
+
+
+    function updateQuality(value) {
+        // 値を0から100の間に制限
+        value = Math.min(Math.max(value, 0), 100);
+
+        // スライダーと数値入力の両方を更新
+        document.getElementById('quality').value = value;
+        document.getElementById('qualityNumber').value = value;
+    }
+
+
+    function updateFileName(input) {
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        fileNameDisplay.textContent = input.files[0] ? input.files[0].name : 'ZIPファイルを選択してください';
+    }
+</script>
 @endsection
