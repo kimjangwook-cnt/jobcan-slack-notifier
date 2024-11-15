@@ -26,6 +26,15 @@ class WebpConverterController extends Controller
         $request->validate([
             'zip_file' => 'required|file|mimes:zip|max:' . $max,
             'quality' => 'required|integer|min:0|max:100',
+        ], [
+            'zip_file.required' => 'ZIPファイルを選択してください。',
+            'zip_file.file' => 'アップロードされたファイルが無効です。',
+            'zip_file.mimes' => 'ZIPファイル形式のみアップロード可能です。',
+            'zip_file.max' => 'ファイルサイズは1GB以下にしてください。',
+            'quality.required' => '圧縮率を指定してください。',
+            'quality.integer' => '圧縮率は整数で指定してください。',
+            'quality.min' => '圧縮率は0以上で指定してください。',
+            'quality.max' => '圧縮率は100以下で指定してください。',
         ]);
 
         try {
@@ -35,7 +44,7 @@ class WebpConverterController extends Controller
             return response()->download($outputZip)->deleteFileAfterSend(true);
         } catch (\Exception $e) {
             Log::error('処理中にエラーが発生しました: ' . $e->getMessage());
-            return back()->with('error', '処理中にエラーが発生しました: ' . $e->getMessage());
+            return back()->withErrors(['error' => '処理中にエラーが発生しました。時間をおいて再度お試しください。']);
         }
     }
 }

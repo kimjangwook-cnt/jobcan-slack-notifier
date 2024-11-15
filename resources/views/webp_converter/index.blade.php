@@ -42,12 +42,22 @@
         </div>
 
         @error('zip_file')
-        <p class="text-red-500 text-sm">{{ $message }}</p>
+        <p class="text-red-500 text-sm mt-2">{{ $message }}</p>
+        @enderror
+
+        @error('quality')
+        <p class="text-red-500 text-sm mt-2">{{ $message }}</p>
         @enderror
 
         <button type="submit" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
             変換開始
         </button>
+
+        @if (session('error'))
+        <div class="my-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
+            {{ session('error') }}
+        </div>
+        @endif
     </form>
 </div>
 @endsection

@@ -64,6 +64,12 @@ class WebpConvertService
 
     private function convertImageToWebp(\SplFileInfo $file, string $extension, int $quality): void
     {
+        // 画像ファイルの検証を追加
+        if (!$this->isValidImage($file->getPathname())) {
+            Log::warning("無効な画像ファイル: " . $file->getPathname());
+            return;
+        }
+
         $image = $this->createImageResource($file, $extension);
         if (!$image) return;
 
@@ -74,6 +80,40 @@ class WebpConvertService
 
         // 元のファイルを削除
         unlink($file->getPathname());
+    }
+
+    // 画像ファイルの検証メソッドを追加
+    private function isValidImage(string $filepath): bool
+    {
+        if (!file_exists($filepath)) {
+            return false;
+        }
+
+        // MIMEタイプの確認
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->file($filepath);
+        $validMimeTypes = [
+            'image/jpeg',
+            'image/png',
+            'image/jpg'
+        ];
+
+        if (!in_array($mimeType, $validMimeTypes)) {
+            return false;
+        }
+
+        // getimagesizeで画像情報を確認
+        $imageInfo = @getimagesize($filepath);
+        if ($imageInfo === false) {
+            return false;
+        }
+
+        // 画像サイズが有効か確認（0より大きい必要がある）
+        if ($imageInfo[0] <= 0 || $imageInfo[1] <= 0) {
+            return false;
+        }
+
+        return true;
     }
 
     private function createImageResource(\SplFileInfo $file, string $extension)
