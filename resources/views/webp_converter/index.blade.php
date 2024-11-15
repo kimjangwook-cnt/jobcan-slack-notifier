@@ -55,14 +55,6 @@
             変換開始
         </button>
 
-        <!-- 処理中の表示用オーバーレイ -->
-        <div id="loadingOverlay" class="hidden fixed inset-0 bg-black bg-opacity-10 flex items-center justify-center z-50">
-            <div class="bg-white p-6 rounded-lg shadow-lg text-center">
-                <p class="text-lg font-semibold">処理中です...</p>
-                <p class="text-sm text-gray-600">しばらくお待ちください</p>
-            </div>
-        </div>
-
         @if (session('error'))
         <div class="my-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
             {{ session('error') }}
@@ -106,6 +98,16 @@
             <span class="text-gray-600 text-sm">・</span>
             <p class="ml-2 text-sm text-gray-600">正常に動作しない場合は、kim.jangwook@connecty.co.jpまでご連絡ください。</p>
         </div>
+    </div>
+</div>
+
+
+<!-- 処理中の表示用オーバーレイ -->
+<div id="loadingOverlay" class="hidden fixed inset-0 bg-black bg-opacity-10 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-lg shadow-lg text-center">
+        @include('includes.loading')
+        <p class="text-lg font-semibold">処理中です...</p>
+        <p class="text-sm text-gray-600">しばらくお待ちください</p>
     </div>
 </div>
 @endsection
