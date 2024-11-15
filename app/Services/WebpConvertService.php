@@ -9,6 +9,7 @@ use Illuminate\Http\UploadedFile;
 class WebpConvertService
 {
     private string $workDir;
+    private array $conversionErrors = [];
 
     public function convertZipToWebp(UploadedFile $zipFile, int $quality): string
     {
@@ -66,19 +67,25 @@ class WebpConvertService
     {
         // 画像ファイルの検証を追加
         if (!$this->isValidImage($file->getPathname())) {
-            Log::warning("無効な画像ファイル: " . $file->getPathname());
+            $this->conversionErrors[] = $file->getPathname() . " - 無効な画像ファイル";
             return;
         }
 
         $image = $this->createImageResource($file, $extension);
-        if (!$image) return;
+        if (!$image) {
+            $this->conversionErrors[] = $file->getPathname() . " - 画像リソースの作成に失敗";
+            return;
+        }
 
         // WebP形式で保存
         $newPath = $file->getPath() . '/' . $file->getBasename('.' . $extension) . '.webp';
-        imagewebp($image, $newPath, $quality);
-        imagedestroy($image);
+        if (!imagewebp($image, $newPath, $quality)) {
+            $this->conversionErrors[] = $file->getPathname() . " - WebP形式への変換に失敗";
+            imagedestroy($image);
+            return;
+        }
 
-        // 元のファイルを削除
+        imagedestroy($image);
         unlink($file->getPathname());
     }
 
@@ -127,22 +134,44 @@ class WebpConvertService
 
     private function createPngResource(\SplFileInfo $file)
     {
-        $image = imagecreatefrompng($file->getPathname());
-        $width = imagesx($image);
-        $height = imagesy($image);
-        $newImage = imagecreatetruecolor($width, $height);
+        try {
+            $image = @imagecreatefrompng($file->getPathname());
+            if ($image === false) {
+                Log::error("PNG 파일 생성 실패: " . $file->getPathname());
+                return null;
+            }
 
-        imagealphablending($newImage, false);
-        imagesavealpha($newImage, true);
-        imagecopy($newImage, $image, 0, 0, 0, 0, $width, $height);
-        imagedestroy($image);
+            $width = imagesx($image);
+            $height = imagesy($image);
+            $newImage = imagecreatetruecolor($width, $height);
 
-        return $newImage;
+            if ($newImage === false) {
+                Log::error("새 이미지 생성 실패: " . $file->getPathname());
+                imagedestroy($image);
+                return null;
+            }
+
+            imagealphablending($newImage, false);
+            imagesavealpha($newImage, true);
+            imagecopy($newImage, $image, 0, 0, 0, 0, $width, $height);
+            imagedestroy($image);
+
+            return $newImage;
+        } catch (\Exception $e) {
+            Log::error("PNG 처리 중 에러 발생: " . $e->getMessage());
+            return null;
+        }
     }
 
     private function createOutputZip(UploadedFile $originalZip): string
     {
         $outputZip = storage_path('app/public/converted_' . $originalZip->getClientOriginalName());
+
+        // 変換 エラー ログ ファイルの作成
+        if (!empty($this->conversionErrors)) {
+            $logPath = $this->workDir . '/conversion_errors.txt';
+            file_put_contents($logPath, implode("\n", $this->conversionErrors));
+        }
 
         $zip = new ZipArchive();
         if ($zip->open($outputZip, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
