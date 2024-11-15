@@ -115,4 +115,42 @@
         @endif
     </form>
 </div>
+
+<div class="mt-4 bg-white rounded-lg shadow-md p-6 border border-gray-200">
+    <h3 class="text-lg font-medium text-gray-900 mb-4">使い方</h3>
+    <div class="space-y-3 mb-6">
+        <div class="flex items-start">
+            <span class="text-gray-600 text-sm">1.</span>
+            <p class="ml-2 text-sm text-gray-600">変換したい画像ファイルをZIPファイルにまとめます。</p>
+        </div>
+        <div class="flex items-start">
+            <span class="text-gray-600 text-sm">2.</span>
+            <p class="ml-2 text-sm text-gray-600">「ファイルを選択」ボタンをクリックし、作成したZIPファイルを選択します。</p>
+        </div>
+        <div class="flex items-start">
+            <span class="text-gray-600 text-sm">3.</span>
+            <p class="ml-2 text-sm text-gray-600">画質（圧縮率）を0〜100の間で設定します。数値が大きいほど高画質になります。</p>
+        </div>
+        <div class="flex items-start">
+            <span class="text-gray-600 text-sm">4.</span>
+            <p class="ml-2 text-sm text-gray-600">「変換開始」ボタンをクリックすると、WebP形式に変換されたファイルがZIPファイルとしてダウンロードされます。</p>
+        </div>
+    </div>
+
+    <h3 class="text-lg font-medium text-gray-900 mb-4 mt-8">※ 注意事項</h3>
+    <div class="space-y-3">
+        <div class="flex items-start">
+            <span class="text-gray-600 text-sm">・</span>
+            <p class="ml-2 text-sm text-gray-600">ZIPファイルは1GBまでアップロード可能ですが、安定した動作のため100MB以下でのご利用を推奨しております。</p>
+        </div>
+        <div class="flex items-start">
+            <span class="text-gray-600 text-sm">・</span>
+            <p class="ml-2 text-sm text-gray-600">SVGなど変換に対応していないファイル形式は、そのまま出力ZIPファイルに格納されます。</p>
+        </div>
+        <div class="flex items-start">
+            <span class="text-gray-600 text-sm">・</span>
+            <p class="ml-2 text-sm text-gray-600">正常に動作しない場合は、kim.jangwook@connecty.co.jpまでご連絡ください。</p>
+        </div>
+    </div>
+</div>
 @endsection
