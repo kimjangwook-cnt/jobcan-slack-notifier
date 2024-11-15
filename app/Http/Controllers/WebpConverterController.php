@@ -22,8 +22,9 @@ class WebpConverterController extends Controller
 
     public function convert(Request $request)
     {
+        $max = 1024 * 1024 * 1024; // 1GB
         $request->validate([
-            'zip_file' => 'required|file|mimes:zip|max:51200',
+            'zip_file' => 'required|file|mimes:zip|max:' . $max,
             'quality' => 'required|integer|min:0|max:100',
         ]);
 
