@@ -55,12 +55,6 @@
     <main class="container mx-auto px-4 py-6 flex-grow mt-16">
         @yield('content')
     </main>
-
-    <footer class="bg-white py-4 fixed bottom-0 left-0 right-0 z-40">
-        <div class="container mx-auto px-4 text-center">
-            &copy; {{ date('Y') }} {{ config('app.name') }}
-        </div>
-    </footer>
 </body>
 
 </html>
