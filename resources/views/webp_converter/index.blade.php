@@ -49,9 +49,64 @@
         <p class="text-red-500 text-sm mt-2">{{ $message }}</p>
         @enderror
 
-        <button type="submit" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+        <button type="submit" id="submitButton"
+            onclick="return handleSubmit(event)"
+            class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
             変換開始
         </button>
+
+        <!-- 処理中の表示用オーバーレイ -->
+        <div id="loadingOverlay" class="hidden fixed inset-0 bg-black bg-opacity-10 flex items-center justify-center z-50">
+            <div class="bg-white p-6 rounded-lg shadow-lg text-center">
+                <p class="text-lg font-semibold">処理中です...</p>
+                <p class="text-sm text-gray-600">しばらくお待ちください</p>
+            </div>
+        </div>
+
+        <script>
+            function handleSubmit(event) {
+                event.preventDefault(); // フォームのデフォルトの送信を防ぐ
+                document.getElementById('loadingOverlay').classList.remove('hidden');
+                // document.getElementById('submitButton').disabled = true;
+                // document.getElementById('zip_file').disabled = true;
+                // document.getElementById('quality').disabled = true;
+
+                // フォームを送信
+                const form = document.getElementById('uploadForm');
+                const formData = new FormData(form);
+
+                fetch(form.action, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('変換に失敗しました');
+                        }
+                        return response.blob();
+                    })
+                    .then(blob => {
+                        // ダウンロードリンクを作成して自動クリック
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'converted_images.zip';
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                    })
+                    .catch(error => {
+                        console.error('エラー:', error);
+                        alert('処理中にエラーが発生しました。時間をおいて再度お試しください。');
+                    })
+                    .finally(() => {
+                        document.getElementById('uploadForm').reset();
+                        document.getElementById('fileNameDisplay').textContent = 'ZIPファイルを選択してください';
+                        document.getElementById('qualityValue').textContent = 90;
+                        document.getElementById('loadingOverlay').classList.add('hidden');
+                    });
+            }
+        </script>
 
         @if (session('error'))
         <div class="my-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
