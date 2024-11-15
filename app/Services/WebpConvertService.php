@@ -125,11 +125,25 @@ class WebpConvertService
 
     private function createImageResource(\SplFileInfo $file, string $extension)
     {
-        // 画像リソースを作成
-        if ($extension === 'png') {
-            return $this->createPngResource($file);
+        // MIMEタイプを確認して実際の画像形式を判断
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->file($file->getPathname());
+
+        try {
+            switch ($mimeType) {
+                case 'image/png':
+                    return $this->createPngResource($file);
+                case 'image/jpeg':
+                case 'image/jpg':
+                    return imagecreatefromjpeg($file->getPathname());
+                default:
+                    Log::error("サポートされていない画像形式: {$mimeType}, ファイル: {$file->getPathname()}");
+                    return null;
+            }
+        } catch (\Exception $e) {
+            Log::error("画像リソースの作成に失敗: {$e->getMessage()}, ファイル: {$file->getPathname()}");
+            return null;
         }
-        return imagecreatefromjpeg($file->getPathname());
     }
 
     private function createPngResource(\SplFileInfo $file)
