@@ -24,10 +24,11 @@ class WebpConverterController extends Controller
     {
         $request->validate([
             'zip_file' => 'required|file|mimes:zip|max:51200',
+            'quality' => 'required|integer|min:0|max:100',
         ]);
 
         try {
-            $outputZip = $this->webpConvertService->convertZipToWebp($request->file('zip_file'));
+            $outputZip = $this->webpConvertService->convertZipToWebp($request->file('zip_file'), $request->quality);
             Log::info('変換が成功しました: ' . $outputZip);
 
             return response()->download($outputZip)->deleteFileAfterSend(true);

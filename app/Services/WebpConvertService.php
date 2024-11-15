@@ -10,7 +10,7 @@ class WebpConvertService
 {
     private string $workDir;
 
-    public function convertZipToWebp(UploadedFile $zipFile): string
+    public function convertZipToWebp(UploadedFile $zipFile, int $quality): string
     {
         // 一時作業ディレクトリを作成
         $this->workDir = storage_path('app/temp/' . uniqid('webp_', true));
@@ -22,7 +22,7 @@ class WebpConvertService
             // ZIPファイルを解凍
             $this->extractZip($zipFile);
             // 解凍した画像をWebP形式に変換
-            $this->convertImagesToWebp($this->workDir);
+            $this->convertImagesToWebp($this->workDir, $quality);
             // 変換した画像を含むZIPファイルを作成
             $outputZip = $this->createOutputZip($zipFile);
 
@@ -44,7 +44,7 @@ class WebpConvertService
         $zip->close();
     }
 
-    private function convertImagesToWebp(string $directory): void
+    private function convertImagesToWebp(string $directory, int $quality): void
     {
         // 指定されたディレクトリ内の画像ファイルを再帰的に取得
         $files = new \RecursiveIteratorIterator(
@@ -56,20 +56,20 @@ class WebpConvertService
                 $extension = strtolower($file->getExtension());
                 // 対応する画像形式をWebPに変換
                 if (in_array($extension, ['jpg', 'jpeg', 'png'])) {
-                    $this->convertImageToWebp($file, $extension);
+                    $this->convertImageToWebp($file, $extension, $quality);
                 }
             }
         }
     }
 
-    private function convertImageToWebp(\SplFileInfo $file, string $extension): void
+    private function convertImageToWebp(\SplFileInfo $file, string $extension, int $quality): void
     {
         $image = $this->createImageResource($file, $extension);
         if (!$image) return;
 
         // WebP形式で保存
         $newPath = $file->getPath() . '/' . $file->getBasename('.' . $extension) . '.webp';
-        imagewebp($image, $newPath, 80);
+        imagewebp($image, $newPath, $quality);
         imagedestroy($image);
 
         // 元のファイルを削除
