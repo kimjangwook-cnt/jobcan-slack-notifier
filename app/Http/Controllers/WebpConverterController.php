@@ -44,7 +44,18 @@ class WebpConverterController extends Controller
 
             return response()->download($outputZip)->deleteFileAfterSend(true);
         } catch (\Exception $e) {
-            Log::error('処理中にエラーが発生しました: ' . $e->getMessage());
+            Log::error('処理中にエラーが発生しました: ' . $e->getMessage() . "\n" . json_encode(collect($e->getTrace())->map(function ($item) {
+                if (isset($item['class'])) {
+                    return 'class: ' . "(line => " . ($item['line'] ?? '?') . ")" . $item['class'];
+                }
+                if (isset($item['function'])) {
+                    return 'function: ' . "(line => " . ($item['line'] ?? '?') . ")" . $item['function'];
+                }
+                if (isset($item['file'])) {
+                    return 'file: ' . "(line => " . ($item['line'] ?? '?') . ")" . $item['file'];
+                }
+                return '?';
+            })->toArray(), JSON_PRETTY_PRINT));
             return back()->withErrors(['error' => '処理中にエラーが発生しました。時間をおいて再度お試しください。']);
         }
     }

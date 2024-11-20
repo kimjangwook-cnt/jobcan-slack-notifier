@@ -11,10 +11,13 @@ class WebpConvertService
     private string $workDir;
     private array $conversionErrors = [];
 
+    private string $uniqid;
+
     public function convertZipToWebp(UploadedFile $zipFile, int $quality): string
     {
+        $this->uniqid = uniqid('webp_', true);
         // 一時作業ディレクトリを作成
-        $this->workDir = storage_path('app/temp/' . uniqid('webp_', true));
+        $this->workDir = storage_path('app/temp/' . $this->uniqid);
         if (!file_exists($this->workDir)) {
             mkdir($this->workDir, 0777, true);
         }
@@ -25,7 +28,7 @@ class WebpConvertService
             // 解凍した画像をWebP形式に変換
             $this->convertImagesToWebp($this->workDir, $quality);
             // 変換した画像を含むZIPファイルを作成
-            $outputZip = $this->createOutputZip($zipFile);
+            $outputZip = $this->createOutputZip();
 
             return $outputZip;
         } finally {
@@ -47,7 +50,6 @@ class WebpConvertService
 
     private function convertImagesToWebp(string $directory, int $quality): void
     {
-        // 指定されたディレクトリ内の画像ファイルを再帰的に取得
         $files = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($directory)
         );
@@ -55,8 +57,8 @@ class WebpConvertService
         foreach ($files as $file) {
             if ($file->isFile() && !str_starts_with($file->getBasename(), '._') && !str_starts_with($file->getBasename(), '.')) {
                 $extension = strtolower($file->getExtension());
-                // 対応する画像形式をWebPに変換
-                if (in_array($extension, ['jpg', 'jpeg', 'png'])) {
+                // 対応している画像形式
+                if (in_array($extension, ['jpg', 'jpeg', 'png', 'bmp', 'gif', 'ico', 'tiff', 'tif', 'heic', 'svg'])) {
                     $this->convertImageToWebp($file, $extension, $quality);
                 }
             }
@@ -67,25 +69,39 @@ class WebpConvertService
     {
         // 画像ファイルの検証を追加
         if (!$this->isValidImage($file->getPathname())) {
-            $this->conversionErrors[] = $file->getPathname() . " - 無効な画像ファイル";
+            $this->conversionErrors[] = str_replace(storage_path("app/temp/" . $this->uniqid) . '/', '', $file->getPathname()) . " - 無効な画像ファイル";
             return;
         }
 
         $image = $this->createImageResource($file, $extension);
         if (!$image) {
-            $this->conversionErrors[] = $file->getPathname() . " - 画像リソースの作成に失敗";
+            $this->conversionErrors[] = str_replace(storage_path("app/temp/" . $this->uniqid) . '/', '', $file->getPathname()) . " - 画像リソースの作成に失敗";
             return;
         }
 
-        // WebP形式で保存
-        $newPath = $file->getPath() . '/' . $file->getBasename('.' . $extension) . '.webp';
-        if (!imagewebp($image, $newPath, $quality)) {
-            $this->conversionErrors[] = $file->getPathname() . " - WebP形式への変換に失敗";
-            imagedestroy($image);
-            return;
-        }
+        // 트루컬러 이미지로 변환
+        $width = imagesx($image);
+        $height = imagesy($image);
+        $trueColorImage = imagecreatetruecolor($width, $height);
 
+        // 알파 채널 지원 설정
+        imagealphablending($trueColorImage, false);
+        imagesavealpha($trueColorImage, true);
+
+        // 원본 이미지를 트루컬러 이미지에 복사
+        imagecopy($trueColorImage, $image, 0, 0, 0, 0, $width, $height);
         imagedestroy($image);
+
+        // WebP 형식으로 저장
+        $newPath = $file->getPath() . '/' . $file->getBasename('.' . $extension) . '.webp';
+        if (!imagewebp($trueColorImage, $newPath, $quality)) {
+            Log::error("WebP形式への変換に失敗: " . $file->getPathname());
+            $this->conversionErrors[] = str_replace(storage_path("app/temp/" . $this->uniqid) . '/', '', $file->getPathname()) . " - WebP形式への変換に失敗";
+            imagedestroy($trueColorImage);
+            return;
+        }
+
+        imagedestroy($trueColorImage);
         unlink($file->getPathname());
     }
 
@@ -96,12 +112,18 @@ class WebpConvertService
             return false;
         }
 
-        // MIMEタイプの確認
         $finfo = new \finfo(FILEINFO_MIME_TYPE);
         $mimeType = $finfo->file($filepath);
+        // 対応しているMIMEタイプ
         $validMimeTypes = [
             'image/jpeg',
             'image/png',
+            'image/bmp',
+            'image/gif',
+            'image/x-icon',
+            'image/tiff',
+            'image/heic',
+            'image/svg+xml',
             'image/jpg'
         ];
 
@@ -109,13 +131,16 @@ class WebpConvertService
             return false;
         }
 
-        // getimagesizeで画像情報を確認
+        // SVGファイルgetimagesizeチェックを除外
+        if ($mimeType === 'image/svg+xml') {
+            return true;
+        }
+
         $imageInfo = @getimagesize($filepath);
         if ($imageInfo === false) {
             return false;
         }
 
-        // 画像サイズが有効か確認（0より大きい必要がある）
         if ($imageInfo[0] <= 0 || $imageInfo[1] <= 0) {
             return false;
         }
@@ -125,7 +150,6 @@ class WebpConvertService
 
     private function createImageResource(\SplFileInfo $file, string $extension)
     {
-        // MIMEタイプを確認して実際の画像形式を判断
         $finfo = new \finfo(FILEINFO_MIME_TYPE);
         $mimeType = $finfo->file($file->getPathname());
 
@@ -136,6 +160,18 @@ class WebpConvertService
                 case 'image/jpeg':
                 case 'image/jpg':
                     return imagecreatefromjpeg($file->getPathname());
+                case 'image/bmp':
+                    return imagecreatefrombmp($file->getPathname());
+                case 'image/gif':
+                    return imagecreatefromgif($file->getPathname());
+                case 'image/x-icon':
+                    return imagecreatefromstring(file_get_contents($file->getPathname()));
+                case 'image/tiff':
+                    return $this->createTiffResource($file);
+                case 'image/heic':
+                    return $this->createHeicResource($file);
+                case 'image/svg+xml':
+                    return $this->createSvgResource($file);
                 default:
                     Log::error("サポートされていない画像形式: {$mimeType}, ファイル: {$file->getPathname()}");
                     return null;
@@ -151,40 +187,49 @@ class WebpConvertService
         try {
             $image = @imagecreatefrompng($file->getPathname());
             if ($image === false) {
-                Log::error("PNG 파일 생성 실패: " . $file->getPathname());
+                Log::error("PNGファイルの作成に失敗: " . $file->getPathname());
                 return null;
             }
 
             $width = imagesx($image);
             $height = imagesy($image);
+            // TrueColorイメージを作成
             $newImage = imagecreatetruecolor($width, $height);
 
             if ($newImage === false) {
-                Log::error("새 이미지 생성 실패: " . $file->getPathname());
+                Log::error("新規画像の作成に失敗: " . $file->getPathname());
                 imagedestroy($image);
                 return null;
             }
 
+            // 透明度の設定
             imagealphablending($newImage, false);
             imagesavealpha($newImage, true);
+            // 背景を透明に設定
+            $transparent = imagecolorallocatealpha($newImage, 0, 0, 0, 127);
+            imagefilledrectangle($newImage, 0, 0, $width, $height, $transparent);
+            // 画像をコピー
+            imagealphablending($newImage, true);
             imagecopy($newImage, $image, 0, 0, 0, 0, $width, $height);
             imagedestroy($image);
 
             return $newImage;
         } catch (\Exception $e) {
-            Log::error("PNG 처리 중 에러 발생: " . $e->getMessage());
+            Log::error("PNG処理中にエラーが発生: " . $e->getMessage());
             return null;
         }
     }
 
-    private function createOutputZip(UploadedFile $originalZip): string
+    private function createOutputZip(): string
     {
-        $outputZip = storage_path('app/public/converted_' . $originalZip->getClientOriginalName());
+        $outputZip = storage_path('app/public/webp_converted_' . date('ymdHi') . '.zip');
 
-        // 変換 エラー ログ ファイルの作成
+
+        // 変換エラーログファイルの作成
         if (!empty($this->conversionErrors)) {
             $logPath = $this->workDir . '/conversion_errors.txt';
             file_put_contents($logPath, implode("\n", $this->conversionErrors));
+            // $zip->addFile($logPath, 'conversion_errors.txt');
         }
 
         $zip = new ZipArchive();
@@ -204,6 +249,7 @@ class WebpConvertService
                 $zip->addFile($filePath, $relativePath);
             }
         }
+
         $zip->close();
 
         return $outputZip;
@@ -220,5 +266,72 @@ class WebpConvertService
             return rmdir($dir);
         }
         return false;
+    }
+
+    // 追加画像形式を処理するためのメソッド
+    private function createTiffResource(\SplFileInfo $file)
+    {
+        // Imagick拡張が必要です
+        if (!extension_loaded('imagick')) {
+            Log::error("Imagick拡張がインストールされていません。");
+            return null;
+        }
+
+        try {
+            $imagick = new \Imagick($file->getPathname());
+            $imagick->setImageFormat('png');
+            $tempFile = tempnam(sys_get_temp_dir(), 'tiff_');
+            $imagick->writeImage($tempFile);
+            $image = imagecreatefrompng($tempFile);
+            unlink($tempFile);
+            return $image;
+        } catch (\Exception $e) {
+            Log::error("TIFF処理中にエラーが発生: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    private function createHeicResource(\SplFileInfo $file)
+    {
+        // Imagick拡張が必要です
+        if (!extension_loaded('imagick')) {
+            Log::error("Imagick拡張がインストールされていません。");
+            return null;
+        }
+
+        try {
+            $imagick = new \Imagick($file->getPathname());
+            $imagick->setImageFormat('png');
+            $tempFile = tempnam(sys_get_temp_dir(), 'heic_');
+            $imagick->writeImage($tempFile);
+            $image = imagecreatefrompng($tempFile);
+            unlink($tempFile);
+            return $image;
+        } catch (\Exception $e) {
+            Log::error("HEIC処理中にエラーが発生: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    private function createSvgResource(\SplFileInfo $file)
+    {
+        // Imagick拡張が必要です
+        if (!extension_loaded('imagick')) {
+            Log::error("Imagick拡張がインストールされていません。");
+            return null;
+        }
+
+        try {
+            $imagick = new \Imagick($file->getPathname());
+            $imagick->setImageFormat('png');
+            $tempFile = tempnam(sys_get_temp_dir(), 'svg_');
+            $imagick->writeImage($tempFile);
+            $image = imagecreatefrompng($tempFile);
+            unlink($tempFile);
+            return $image;
+        } catch (\Exception $e) {
+            Log::error("SVG処理中にエラーが発生: " . $e->getMessage());
+            return null;
+        }
     }
 }

@@ -87,15 +87,19 @@
     <h3 class="text-lg font-medium text-gray-900 mb-4 mt-8">※ 注意事項</h3>
     <div class="space-y-3">
         <div class="flex items-start">
-            <span class="text-gray-600 text-sm">・</span>
-            <p class="ml-2 text-sm text-gray-600">ZIPファイルは1GBまでアップロード可能ですが、安定した動作のため100MB以下でのご利用を推奨しております。</p>
+            <span class="text-gray-600 text-sm">1.</span>
+            <p class="ml-2 text-sm text-gray-600">ZIPファイルは<span style="font-weight: bold; color: #ff0000;">1GB</span>までアップロード可能ですが、安定した動作のため<span style="font-weight: bold; color: #ff0000;">100MB以下</span>でのご利用を推奨しております。</p>
         </div>
         <div class="flex items-start">
-            <span class="text-gray-600 text-sm">・</span>
-            <p class="ml-2 text-sm text-gray-600">SVGなど変換に対応していないファイル形式は、そのまま出力ZIPファイルに格納されます。</p>
+            <span class="text-gray-600 text-sm">2.</span>
+            <p class="ml-2 text-sm text-gray-600"><span style="font-weight: bold; color: #ff0000;">SVG, ICO, TIFF</span>など変換に対応していないファイル形式は、そのまま出力ZIPファイルに格納されます。</p>
         </div>
         <div class="flex items-start">
-            <span class="text-gray-600 text-sm">・</span>
+            <span class="text-gray-600 text-sm">3.</span>
+            <p class="ml-2 text-sm text-gray-600">ZIPファイルの<span style="font-weight: bold; color: #ff0000;">conversion_errors.txt</span>には、変換に失敗したファイルのリストが記載されます。</p>
+        </div>
+        <div class="flex items-start">
+            <span class="text-gray-600 text-sm">4.</span>
             <p class="ml-2 text-sm text-gray-600">正常に動作しない場合は、kim.jangwook@connecty.co.jpまでご連絡ください。</p>
         </div>
     </div>
@@ -136,23 +140,26 @@
                 return response.blob();
             })
             .then(blob => {
-                // ダウンロードリンクを作成して自動クリック
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'converted_images.zip';
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
+                if (blob.type === 'application/zip' || blob.type === 'application/x-zip-compressed') {
+                    // ダウンロードリンクを作成して自動クリック
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    throw new Error('不正なファイル形式です');
+                }
             })
             .catch(error => {
                 console.error('エラー:', error);
                 alert('処理中にエラーが発生しました。時間をおいて再度お試しください。');
             })
             .finally(() => {
-                document.getElementById('uploadForm').reset();
-                document.getElementById('fileNameDisplay').textContent = 'ZIPファイルを選択してください';
-                document.getElementById('qualityNumber').value = 90;
+                // document.getElementById('uploadForm').reset();
+                // document.getElementById('fileNameDisplay').textContent = 'ZIPファイルを選択してください';
+                // document.getElementById('qualityNumber').value = 90;
                 document.getElementById('loadingOverlay').classList.add('hidden');
             });
     }
