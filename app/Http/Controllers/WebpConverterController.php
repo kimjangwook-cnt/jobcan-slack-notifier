@@ -22,6 +22,7 @@ class WebpConverterController extends Controller
 
     public function convert(Request $request)
     {
+        Log::info('リクエスト: ' . json_encode($request->all()));
         $max = 1024 * 1024 * 1024; // 1GB
 
         $request->validate([
@@ -42,7 +43,15 @@ class WebpConverterController extends Controller
             $outputZip = $this->webpConvertService->convertZipToWebp($request->file('zip_file'), $request->quality);
             Log::info('変換が成功しました: ' . $outputZip);
 
-            return response()->download($outputZip)->deleteFileAfterSend(true);
+            return response()->json([
+                'success' => true,
+                'message' => '変換が成功しました',
+                'data' => [
+                    'output_zip' => base64_encode(file_get_contents($outputZip)),
+                    'file_name' => basename($outputZip),
+                ],
+                'error' => null,
+            ]);
         } catch (\Exception $e) {
             Log::error('処理中にエラーが発生しました: ' . $e->getMessage() . "\n" . json_encode(collect($e->getTrace())->map(function ($item) {
                 if (isset($item['class'])) {
@@ -56,7 +65,13 @@ class WebpConverterController extends Controller
                 }
                 return '?';
             })->toArray(), JSON_PRETTY_PRINT));
-            return back()->withErrors(['error' => '処理中にエラーが発生しました。時間をおいて再度お試しください。']);
+
+            return response()->json([
+                'success' => false,
+                'message' => '処理中にエラーが発生しました。kim.jangwook@connecty.co.jpへお知らせください。',
+                'data' => null,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 }
