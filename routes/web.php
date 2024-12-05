@@ -9,3 +9,4 @@ Route::get('/', function () {
 
 Route::get('/webp-converter', [WebpConverterController::class, 'index'])->name('webp.index');
 Route::post('/webp-converter/convert', [WebpConverterController::class, 'convert'])->name('webp.convert');
+Route::post('/webp-converter/convert-one', [WebpConverterController::class, 'convertOne'])->name('webp.convert-one');

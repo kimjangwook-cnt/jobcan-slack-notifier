@@ -37,6 +37,33 @@ class WebpConvertService
         }
     }
 
+    public function convertOne(UploadedFile $imageFile, int $quality): string
+    {
+        $this->uniqid = uniqid('webp_', true);
+        // 一時作業ディレクトリを作成
+        $this->workDir = storage_path('app/temp/' . $this->uniqid);
+        if (!file_exists($this->workDir)) {
+            mkdir($this->workDir, 0777, true);
+        }
+
+        try {
+            if ($imageFile->isimageFile() && !str_starts_with($imageFile->getBasename(), '._') && !str_starts_with($imageFile->getBasename(), '.')) {
+                $extension = strtolower($imageFile->getExtension());
+                // 対応している画像形式
+                if (in_array($extension, ['jpg', 'jpeg', 'png', 'bmp', 'gif', 'ico', 'tiff', 'tif', 'heic', 'svg'])) {
+                    $this->convertImageToWebp($imageFile, $extension, $quality);
+                }
+            }
+
+            $newPath = $imageFile->getPath() . '/' . $imageFile->getBasename('.' . $extension) . '.webp';
+
+            return $newPath;
+        } finally {
+            // 作業ディレクトリを削除
+            $this->removeDirectory($this->workDir);
+        }
+    }
+
     private function extractZip(UploadedFile $zipFile): void
     {
         $zip = new ZipArchive;
