@@ -96,6 +96,11 @@ class WebpConverterController extends Controller
 
         try {
             $outputFile = $this->webpConvertService->convertOne($request->file('image_file'), $request->quality);
+
+            if (!$outputFile) {
+                throw new \Exception('変換に失敗しました。');
+            }
+
             Log::info('変換が成功しました: ' . $outputFile);
 
             return response()->json([

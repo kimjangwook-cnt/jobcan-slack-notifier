@@ -6,13 +6,36 @@ use ZipArchive;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\UploadedFile;
 
+/**
+ * WebP画像変換サービスクラス
+ *
+ * 画像ファイルをWebP形式に変換するためのサービスクラスです。
+ * ZIP形式の一括変換と単一ファイルの変換に対応しています。
+ */
 class WebpConvertService
 {
+    /**
+     * 作業用一時ディレクトリのパス
+     */
     private string $workDir;
+
+    /**
+     * 変換処理中に発生したエラーを格納する配列
+     */
     private array $conversionErrors = [];
 
+    /**
+     * 一時ファイル用のユニークID
+     */
     private string $uniqid;
 
+    /**
+     * ZIPファイル内の画像をWebP形式に一括変換
+     *
+     * @param UploadedFile $zipFile アップロードされたZIPファイル
+     * @param int $quality 変換後の画質(0-100)
+     * @return string 変換後のZIPファイルパス
+     */
     public function convertZipToWebp(UploadedFile $zipFile, int $quality): string
     {
         $this->uniqid = uniqid('webp_', true);
@@ -37,33 +60,52 @@ class WebpConvertService
         }
     }
 
-    public function convertOne(UploadedFile $imageFile, int $quality): string
+    /**
+     * 単一の画像ファイルをWebP形式に変換
+     *
+     * @param UploadedFile $imageFile アップロードされた画像ファイル
+     * @param int $quality 変換後の画質(0-100)
+     * @return string|null 変換後のファイルパス、失敗時はnull
+     */
+    public function convertOne(UploadedFile $imageFile, int $quality): string | null
     {
         $this->uniqid = uniqid('webp_', true);
-        // 一時作業ディレクトリを作成
         $this->workDir = storage_path('app/temp/' . $this->uniqid);
         if (!file_exists($this->workDir)) {
             mkdir($this->workDir, 0777, true);
         }
 
         try {
-            if ($imageFile->isimageFile() && !str_starts_with($imageFile->getBasename(), '._') && !str_starts_with($imageFile->getBasename(), '.')) {
-                $extension = strtolower($imageFile->getExtension());
-                // 対応している画像形式
-                if (in_array($extension, ['jpg', 'jpeg', 'png', 'bmp', 'gif', 'ico', 'tiff', 'tif', 'heic', 'svg'])) {
-                    $this->convertImageToWebp($imageFile, $extension, $quality);
-                }
+            $extension = strtolower($imageFile->getClientOriginalExtension());
+
+            // サポートされている画像形式かどうかを確認
+            if (!in_array($extension, ['jpg', 'jpeg', 'png', 'bmp', 'gif', 'ico', 'tiff', 'tif', 'heic', 'svg'])) {
+                Log::error('サポートされていないファイル形式です: ' . $extension);
+                return null;
             }
 
-            $newPath = $imageFile->getPath() . '/' . $imageFile->getBasename('.' . $extension) . '.webp';
+            // 画像をWebPに変換してパスを返す
+            $outputPath = $this->convertImageToWebp($imageFile, $extension, $quality);
 
-            return $newPath;
+            if ($outputPath) {
+                Log::info('変換成功: ' . $outputPath);
+                return $outputPath;
+            }
+
+            Log::error('変換失敗: ' . $imageFile->getClientOriginalName());
+            return null;
         } finally {
-            // 作業ディレクトリを削除
+            // 作業ディレクトリのクリーンアップ
             $this->removeDirectory($this->workDir);
         }
     }
 
+    /**
+     * ZIPファイルを解凍する
+     *
+     * @param UploadedFile $zipFile 解凍対象のZIPファイル
+     * @throws \RuntimeException ZIPファイルの解凍に失敗した場合
+     */
     private function extractZip(UploadedFile $zipFile): void
     {
         $zip = new ZipArchive;
@@ -75,6 +117,12 @@ class WebpConvertService
         $zip->close();
     }
 
+    /**
+     * 指定ディレクトリ内の画像をWebP形式に変換
+     *
+     * @param string $directory 変換対象の画像が格納されているディレクトリパス
+     * @param int $quality 変換後の画質(0-100)
+     */
     private function convertImagesToWebp(string $directory, int $quality): void
     {
         $files = new \RecursiveIteratorIterator(
@@ -92,47 +140,62 @@ class WebpConvertService
         }
     }
 
-    private function convertImageToWebp(\SplFileInfo $file, string $extension, int $quality): void
+    /**
+     * 個別の画像ファイルをWebP形式に変換
+     *
+     * @param \SplFileInfo $file 変換対象の画像ファイル
+     * @param string $extension ファイルの拡張子
+     * @param int $quality 変換後の画質(0-100)
+     * @return string|null 変換後のファイルパス、失敗時はnull
+     */
+    private function convertImageToWebp(\SplFileInfo $file, string $extension, int $quality): string | null
     {
         // 画像ファイルの検証を追加
         if (!$this->isValidImage($file->getPathname())) {
             $this->conversionErrors[] = str_replace(storage_path("app/temp/" . $this->uniqid) . '/', '', $file->getPathname()) . " - 無効な画像ファイル";
-            return;
+            return null;
         }
 
         $image = $this->createImageResource($file, $extension);
         if (!$image) {
             $this->conversionErrors[] = str_replace(storage_path("app/temp/" . $this->uniqid) . '/', '', $file->getPathname()) . " - 画像リソースの作成に失敗";
-            return;
+            return null;
         }
 
-        // 트루컬러 이미지로 변환
+        // トゥルーカラー画像に変換
         $width = imagesx($image);
         $height = imagesy($image);
         $trueColorImage = imagecreatetruecolor($width, $height);
 
-        // 알파 채널 지원 설정
+        // アルファチャンネルサポートの設定
         imagealphablending($trueColorImage, false);
         imagesavealpha($trueColorImage, true);
 
-        // 원본 이미지를 트루컬러 이미지에 복사
+        // 元の画像をトゥルーカラー画像にコピー
         imagecopy($trueColorImage, $image, 0, 0, 0, 0, $width, $height);
         imagedestroy($image);
 
-        // WebP 형식으로 저장
+        // WebP形式で保存
         $newPath = $file->getPath() . '/' . $file->getBasename('.' . $extension) . '.webp';
         if (!imagewebp($trueColorImage, $newPath, $quality)) {
             Log::error("WebP形式への変換に失敗: " . $file->getPathname());
             $this->conversionErrors[] = str_replace(storage_path("app/temp/" . $this->uniqid) . '/', '', $file->getPathname()) . " - WebP形式への変換に失敗";
             imagedestroy($trueColorImage);
-            return;
+            return null;
         }
 
         imagedestroy($trueColorImage);
         unlink($file->getPathname());
+
+        return $newPath;
     }
 
-    // 画像ファイルの検証メソッドを追加
+    /**
+     * 画像ファイルの有効性を検証
+     *
+     * @param string $filepath 検証対象の画像ファイルパス
+     * @return bool 有効な画像の場合はtrue
+     */
     private function isValidImage(string $filepath): bool
     {
         if (!file_exists($filepath)) {
@@ -175,6 +238,13 @@ class WebpConvertService
         return true;
     }
 
+    /**
+     * 画像リソースを作成
+     *
+     * @param \SplFileInfo $file 画像ファイル
+     * @param string $extension ファイルの拡張子
+     * @return resource|null 画像リソース、失敗時はnull
+     */
     private function createImageResource(\SplFileInfo $file, string $extension)
     {
         $finfo = new \finfo(FILEINFO_MIME_TYPE);
@@ -209,6 +279,12 @@ class WebpConvertService
         }
     }
 
+    /**
+     * PNG画像リソースを作成
+     *
+     * @param \SplFileInfo $file PNGファイル
+     * @return resource|null 画像リソース、失敗時はnull
+     */
     private function createPngResource(\SplFileInfo $file)
     {
         try {
@@ -247,16 +323,20 @@ class WebpConvertService
         }
     }
 
+    /**
+     * 変換後のZIPファイルを作成
+     *
+     * @return string 作成されたZIPファイルのパス
+     * @throws \RuntimeException ZIPファイルの作成に失敗した場合
+     */
     private function createOutputZip(): string
     {
         $outputZip = storage_path('app/public/webp_converted_' . date('ymdHi') . '.zip');
-
 
         // 変換エラーログファイルの作成
         if (!empty($this->conversionErrors)) {
             $logPath = $this->workDir . '/conversion_errors.txt';
             file_put_contents($logPath, implode("\n", $this->conversionErrors));
-            // $zip->addFile($logPath, 'conversion_errors.txt');
         }
 
         $zip = new ZipArchive();
@@ -282,6 +362,12 @@ class WebpConvertService
         return $outputZip;
     }
 
+    /**
+     * ディレクトリとその中身を再帰的に削除
+     *
+     * @param string $dir 削除対象のディレクトリパス
+     * @return bool 削除成功時はtrue
+     */
     private function removeDirectory(string $dir): bool
     {
         if (is_dir($dir)) {
@@ -295,7 +381,12 @@ class WebpConvertService
         return false;
     }
 
-    // 追加画像形式を処理するためのメソッド
+    /**
+     * TIFF画像をPNG形式に変換してリソースを作成
+     *
+     * @param \SplFileInfo $file TIFFファイル
+     * @return resource|null 画像リソース、失敗時はnull
+     */
     private function createTiffResource(\SplFileInfo $file)
     {
         // Imagick拡張が必要です
@@ -318,6 +409,12 @@ class WebpConvertService
         }
     }
 
+    /**
+     * HEIC画像をPNG形式に変換してリソースを作成
+     *
+     * @param \SplFileInfo $file HEICファイル
+     * @return resource|null 画像リソース、失敗時はnull
+     */
     private function createHeicResource(\SplFileInfo $file)
     {
         // Imagick拡張が必要です
@@ -340,6 +437,12 @@ class WebpConvertService
         }
     }
 
+    /**
+     * SVG画像をPNG形式に変換してリソースを作成
+     *
+     * @param \SplFileInfo $file SVGファイル
+     * @return resource|null 画像リソース、失敗時はnull
+     */
     private function createSvgResource(\SplFileInfo $file)
     {
         // Imagick拡張が必要です
