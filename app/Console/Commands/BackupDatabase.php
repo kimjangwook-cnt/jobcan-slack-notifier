@@ -29,14 +29,7 @@ class BackupDatabase extends Command
 
         $filename = 'backup-' . date('Ymd') . '.sql';
         $this->process = new Process([
-            'mysqldump',
-            '-u',
-            config('database.connections.mysql.username'),
-            '-p',
-            config('database.connections.mysql.password'),
-            config('database.connections.mysql.database'),
-            '>',
-            storage_path('app/backups/' . $filename)
+            'mysqldump -u' . config('database.connections.mysql.username') . ' -p' . config('database.connections.mysql.password') . ' ' . config('database.connections.mysql.database') . ' > ' . storage_path('app/backups/' . $filename)
         ]);
     }
 
@@ -47,6 +40,7 @@ class BackupDatabase extends Command
 
             $this->info('The backup has been proceed successfully.');
         } catch (ProcessFailedException $exception) {
+            $this->error($exception->getMessage());
             $this->error('The backup process has been failed.');
         }
     }
