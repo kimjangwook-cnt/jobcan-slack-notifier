@@ -28,9 +28,17 @@ class BackupDatabase extends Command
         }
 
         $filename = 'backup-' . date('Ymd') . '.sql';
-        $this->process = new Process([
-            'mysqldump -u' . config('database.connections.mysql.username') . ' -p' . config('database.connections.mysql.password') . ' ' . config('database.connections.mysql.database') . ' > ' . storage_path('app/backups/' . $filename)
-        ]);
+        $backupFilePath = storage_path('app/backups/' . $filename);
+
+        $command = sprintf(
+            'mysqldump -u%s -p%s %s > %s',
+            config('database.connections.mysql.username'),
+            config('database.connections.mysql.password'),
+            config('database.connections.mysql.database'),
+            $backupFilePath
+        );
+
+        $this->process = Process::fromShellCommandline($command, null, null, null, 3600);
     }
 
     public function handle()
