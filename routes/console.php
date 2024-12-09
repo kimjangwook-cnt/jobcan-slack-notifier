@@ -2,6 +2,7 @@
 
 use App\Services\JobCanService;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
 use Yasumi\Yasumi;
@@ -23,3 +24,16 @@ Schedule::call(function () {
         return $holidays->isHoliday($today);
     })
 ;
+
+Schedule::call(function () {
+    try {
+        $output = Artisan::call('db:backup');
+        Log::info('Database backup completed successfully', ['output' => $output]);
+    } catch (\Exception $e) {
+        Log::error('Database backup failed', ['error' => $e->getMessage()]);
+    }
+})
+    ->timezone('Asia/Tokyo')
+    ->weekdays()
+    ->dailyAt('01:00')
+    ->name('database-backup');
