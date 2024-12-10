@@ -100,12 +100,14 @@ class WebpConverterController extends Controller
 
         try {
             $outputFiles = [];
+            $originalNames = []; // オリジナルファイル名を保存する配列
             foreach ($request->file('image_files') as $imageFile) {
                 $outputFile = $this->webpConvertService->convertOne($imageFile, $request->quality);
                 if (!$outputFile) {
                     throw new \Exception('変換に失敗しました。');
                 }
                 $outputFiles[] = $outputFile;
+                $originalNames[] = pathinfo($imageFile->getClientOriginalName(), PATHINFO_FILENAME) . '.webp'; // 원본 파일 이름 저장
             }
 
             // ZIPファイル作成
@@ -115,8 +117,8 @@ class WebpConverterController extends Controller
                 throw new \Exception('ZIPファイルの作成に失敗しました。');
             }
 
-            foreach ($outputFiles as $file) {
-                $zip->addFile($file, basename($file));
+            foreach (array_combine($outputFiles, $originalNames) as $file => $originalName) {
+                $zip->addFile($file, $originalName);
             }
             $zip->close();
 
