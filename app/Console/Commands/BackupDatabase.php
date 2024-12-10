@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 
@@ -17,15 +18,6 @@ class BackupDatabase extends Command
     public function __construct()
     {
         parent::__construct();
-        // Remove backups older than 7 days
-        $backupPath = storage_path('app/backups');
-        $files = glob($backupPath . '/backup-*.sql');
-        $now = time();
-        foreach ($files as $file) {
-            if ($now - filemtime($file) >= 7 * 24 * 60 * 60) {
-                unlink($file);
-            }
-        }
 
         $filename = 'backup-' . date('Ymd') . '.sql';
         $backupFilePath = storage_path('app/backups/' . $filename);
@@ -45,6 +37,17 @@ class BackupDatabase extends Command
     {
         try {
             $this->process->mustRun();
+
+            $filename = 'backup-' . date('Ymd') . '.sql';
+            $backupFilePath = storage_path('app/backups/' . $filename);
+
+            if (file_exists($backupFilePath)) {
+                $result = Storage::disk('s3')->put('backups/' . $filename, file_get_contents($backupFilePath));
+
+                if ($result) {
+                    unlink($backupFilePath);
+                }
+            }
 
             $this->info('The backup has been proceed successfully.');
         } catch (ProcessFailedException $exception) {
