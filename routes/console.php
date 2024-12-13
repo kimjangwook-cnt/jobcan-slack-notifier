@@ -37,3 +37,18 @@ Schedule::call(function () {
     ->weekdays()
     ->dailyAt('01:00')
     ->name('database-backup');
+
+// ssl 証明書の有効期限をチェックする
+Schedule::call(function () {
+    $today = Carbon::now();
+    $holidays = Yasumi::create('Japan', $today->format('Y'), 'ja_JP');
+
+    $isHoliday = $holidays->isHoliday($today);
+    $isWednesday = $today->dayOfWeek === Carbon::WEDNESDAY;
+    $shouldNotify = !$isHoliday && $isWednesday;
+
+    Artisan::call('app:get-ssl-info', ['--notify' => $shouldNotify]);
+})
+    ->timezone('Asia/Tokyo')
+    ->dailyAt('02:00')
+    ->name('ssl-certificate-check');

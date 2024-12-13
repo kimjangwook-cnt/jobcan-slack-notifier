@@ -8,6 +8,7 @@ return [
         9842940, // 0314_見積申請（コンペ用）
     ],
     'slack_webhook_url' => env('SLACK_WEBHOOK_URL'),
+    'ssl_webhook_url' => env('SSL_WEBHOOK_URL'),
     'admin_key' => env('ADMIN_KEY'),
     'allowed_ips' => [
         # LOCAL
