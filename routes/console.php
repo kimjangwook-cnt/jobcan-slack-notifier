@@ -50,5 +50,5 @@ Schedule::call(function () {
     Artisan::call('app:get-ssl-info', ['--notify' => $shouldNotify]);
 })
     ->timezone('Asia/Tokyo')
-    ->dailyAt('02:00')
+    ->dailyAt('10:00')
     ->name('ssl-certificate-check');
