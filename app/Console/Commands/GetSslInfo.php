@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\SslInfo;
+use App\Services\NotionReaderService;
 use App\Services\SlackService;
 use App\Services\SslCheckerService;
 use Illuminate\Console\Command;
@@ -28,8 +29,8 @@ class GetSslInfo extends Command
      */
     public function handle()
     {
-        $domains = config('ssl_domain');
-        $sslInfos = SslCheckerService::checkCertificate($domains);
+        $domainInfo = NotionReaderService::readDomainInfo();
+        $sslInfos = SslCheckerService::checkCertificate($domainInfo);
 
         # remove database
         SslInfo::truncate();
