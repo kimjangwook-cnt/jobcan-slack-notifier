@@ -174,17 +174,11 @@ class SlackService
             ];
         };
 
-        if (count($errorList) > 0) {
-            $blocks[] = $makeRichText("[証明書情報取得失敗]\n", $errorList);
-        } else {
-            $blocks[] = $makeRichText2("証明書情報取得失敗なし");
-        }
-
-        if (count($under120List) > 0) {
-            $blocks[] = $makeRichText("期限切れまで[120日]\n", $under120List);
-        } else {
-            $blocks[] = $makeRichText2("期限切れまで[120日]\n");
-        }
+        // if (count($under120List) > 0) {
+        //     $blocks[] = $makeRichText("期限切れまで[120日]\n", $under120List);
+        // } else {
+        //     $blocks[] = $makeRichText2("期限切れまで[120日]\n");
+        // }
 
         if (count($under90List) > 0) {
             $blocks[] = $makeRichText("期限切れまで[90日]\n", $under90List);
@@ -202,6 +196,10 @@ class SlackService
             $blocks[] = $makeRichText("期限切れまで[30日]\n", $under30List);
         } else {
             $blocks[] = $makeRichText2("期限切れまで[30日]\n");
+        }
+
+        if (count($errorList) > 0) {
+            $blocks[] = $makeRichText("[証明書情報取得失敗]\n", $errorList);
         }
 
 
