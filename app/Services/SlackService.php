@@ -103,18 +103,18 @@ class SlackService
                 $label = "[SSL情報取得失敗] {$item['company_name']} - {$item['domain']}: ({$item['error']})";
                 $errorList[] = $makeListItem($label);
             } else if ($item['days_left'] <= 120) {
-                $label = "[満了まで{$item['days_left']}日] {$item['company_name']} - {$item['domain']}";
+                $label = "[残り{$item['days_left']}日] {$item['company_name']} - {$item['domain']}";
                 if (env('APP_ENV') !== 'production') {
                     $under120List[] = $makeListItem($label);
                 }
             } else if ($item['days_left'] <= 90) {
-                $label = "[満了まで{$item['days_left']}日] {$item['company_name']} - {$item['domain']}";
+                $label = "[残り{$item['days_left']}日] {$item['company_name']} - {$item['domain']}";
                 $under90List[] = $makeListItem($label);
             } else if ($item['days_left'] <= 60) {
-                $label = "[満了まで{$item['days_left']}日] {$item['company_name']} - {$item['domain']}";
+                $label = "[残り{$item['days_left']}日] {$item['company_name']} - {$item['domain']}";
                 $under60List[] = $makeListItem($label);
             } else if ($item['days_left'] <= 30) {
-                $label = "[満了まで{$item['days_left']}日] {$item['company_name']} - {$item['domain']}";
+                $label = "[残り{$item['days_left']}日] {$item['company_name']} - {$item['domain']}";
                 $under30List[] = $makeListItem($label);
             }
         }
@@ -142,24 +142,66 @@ class SlackService
             ];
         };
 
+        $makeRichText2 = function ($title) {
+            return [
+                'type' => 'rich_text',
+                'elements' => [
+                    [
+                        "type" => "rich_text_section",
+                        "elements" => [
+                            [
+                                "type" => "text",
+                                "text" => $title,
+                            ],
+                        ]
+                    ],
+                    [
+                        'type' => 'rich_text_list',
+                        'style' => 'bullet',
+                        'elements' => [
+                            [
+                                'type' => 'rich_text_section',
+                                'elements' => [
+                                    [
+                                        'type' => 'text',
+                                        'text' => '該当なし',
+                                    ],
+                                ],
+                            ]
+                        ],
+                    ],
+                ],
+            ];
+        };
+
         if (count($errorList) > 0) {
             $blocks[] = $makeRichText("[証明書情報取得失敗]\n", $errorList);
+        } else {
+            $blocks[] = $makeRichText2("証明書情報取得失敗なし");
         }
 
         if (count($under120List) > 0) {
-            $blocks[] = $makeRichText("[満了まで120日]\n", $under120List);
+            $blocks[] = $makeRichText("期限切れまで[120日]\n", $under120List);
+        } else {
+            $blocks[] = $makeRichText2("期限切れまで[120日]\n");
         }
 
         if (count($under90List) > 0) {
-            $blocks[] = $makeRichText("[満了まで90日]\n", $under90List);
+            $blocks[] = $makeRichText("期限切れまで[90日]\n", $under90List);
+        } else {
+            $blocks[] = $makeRichText2("期限切れまで[90日]\n");
         }
 
         if (count($under60List) > 0) {
-            $blocks[] = $makeRichText("[満了まで60日]\n", $under60List);
+            $blocks[] = $makeRichText("期限切れまで[60日]\n", $under60List);
+        } else {
+            $blocks[] = $makeRichText2("期限切れまで[60日]\n");
         }
 
         if (count($under30List) > 0) {
-            $blocks[] = $makeRichText("[満了まで30日]\n", $under30List);
+            $blocks[] = $makeRichText("期限切れまで[30日]\n", $under30List);
+        } else {
+            $blocks[] = $makeRichText2("期限切れまで[30日]\n");
         }
 
 
