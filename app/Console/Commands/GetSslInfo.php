@@ -53,13 +53,6 @@ class GetSslInfo extends Command
         $isThursday = $today->dayOfWeek === Carbon::THURSDAY;
         $shouldNotify = !$isHoliday && $isThursday;
 
-        print_r([
-            '通知' => $shouldNotify ? 'Slack通知' : 'Slack通知なし',
-            'holiday' => $isHoliday ? '祝日' : '平日',
-            'thursday' => $isThursday ? '木曜日' : 'その他',
-            'today' => $today->format('Y-m-d'),
-        ]);
-
         # send slack notification if --notify option is set
         if ($shouldNotify) {
             SlackService::sslInfo($sslInfos);
