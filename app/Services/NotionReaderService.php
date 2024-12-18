@@ -87,32 +87,48 @@ class NotionReaderService
                 'Content-Type' => 'application/json',
             ];
 
-            $response = $client->post("databases/{$databaseId}/query", [
-                'headers' => $headers,
-                'json' => (object)[],
-            ]);
-
-            $data = json_decode($response->getBody(), true);
-            // return $data;
             $results = [];
+            $hasMore = true;
+            $nextCursor = null;
+            $prevCursor = null;
 
-            // print_r($data);
+            while ($hasMore) {
+                $body = [];
+                if ($nextCursor) {
+                    $body['start_cursor'] = $nextCursor;
+                }
 
-            foreach ($data['results'] as $page) {
-                $companyId = $page['properties']['既存企業DB']['relation'][0]['id'] ?? '';
-                $companyName = collect($companyList)->firstWhere('id', $companyId)['site_name'] ?? '';
-                $results[] = [
-                    // 'company_name' => $page['properties']['会社名']['select']['name'] ?? '',
-                    'domain' => $page['properties']['ドメイン']['url'] ?? 'ー',
-                    'site_name' => $page['properties']['サイト名']['title'][0]['text']['content'] ?? 'ー',
-                    // 'company_id' => $companyId,
-                    'company_name' => $companyName,
-                ];
+                $response = $client->post("databases/{$databaseId}/query", [
+                    'headers' => $headers,
+                    'json' => (object)$body
+                ]);
+
+                $data = json_decode($response->getBody(), true);
+
+                foreach ($data['results'] as $page) {
+                    $companyId = $page['properties']['既存企業DB']['relation'][0]['id'] ?? '';
+                    $companyName = collect($companyList)->firstWhere('id', $companyId)['site_name'] ?? '';
+                    $results[] = [
+                        'domain' => $page['properties']['ドメイン']['url'] ?? 'ー',
+                        'site_name' => $page['properties']['サイト名']['title'][0]['text']['content'] ?? 'ー',
+                        'company_name' => $companyName,
+                    ];
+                }
+
+                $hasMore = $data['has_more'] ?? false;
+                $prevCursor = $nextCursor;
+                $nextCursor = $data['next_cursor'] ?? null;
+
+                // 前のカーソルと現在のカーソルが同じ場合、無限ループを防ぐために終了
+                if ($prevCursor === $nextCursor) {
+                    Log::warning('Notion API: 同じnext_cursorが返されたためループを終了します。');
+                    break;
+                }
             }
 
             return $results;
         } catch (GuzzleException $e) {
-            throw new \Exception("Notion API 요청 실패: " . $e->getMessage());
+            throw new \Exception("Notion API リクエストに失敗しました: " . $e->getMessage());
         }
     }
 }
