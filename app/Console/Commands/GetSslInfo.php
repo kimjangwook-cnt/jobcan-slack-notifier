@@ -29,7 +29,8 @@ class GetSslInfo extends Command
      */
     public function handle()
     {
-        $domainInfo = NotionReaderService::readDomainInfo();
+        $companyInfo = NotionReaderService::readCompanyInfo();
+        $domainInfo = NotionReaderService::readDomainInfo($companyInfo);
         $sslInfos = SslCheckerService::checkCertificate($domainInfo);
 
         # remove database
