@@ -108,8 +108,9 @@ class NotionReaderService
                 foreach ($data['results'] as $page) {
                     $companyId = $page['properties']['既存企業DB']['relation'][0]['id'] ?? '';
                     $companyName = collect($companyList)->firstWhere('id', $companyId)['site_name'] ?? '';
+
                     $results[] = [
-                        'domain' => $page['properties']['ドメイン']['url'] ?? 'ー',
+                        'domain' => $page['properties']['対象ドメイン']['rich_text'][0]['text']['content'] ?? 'ー',
                         'site_name' => $page['properties']['サイト名']['title'][0]['text']['content'] ?? 'ー',
                         'company_name' => $companyName,
                     ];
