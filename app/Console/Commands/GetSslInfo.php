@@ -7,6 +7,8 @@ use App\Services\NotionReaderService;
 use App\Services\SlackService;
 use App\Services\SslCheckerService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Carbon;
+use Yasumi\Yasumi;
 
 class GetSslInfo extends Command
 {
@@ -15,7 +17,7 @@ class GetSslInfo extends Command
      *
      * @var string
      */
-    protected $signature = 'app:get-ssl-info {--notify : Slack 알림을 보낼지 여부}';
+    protected $signature = 'app:get-ssl-info';
 
     /**
      * The console command description.
@@ -32,13 +34,34 @@ class GetSslInfo extends Command
         $companyInfo = NotionReaderService::readCompanyInfo();
         $domainInfo = NotionReaderService::readDomainInfo($companyInfo);
         $sslInfos = SslCheckerService::checkCertificate($domainInfo);
+        NotionReaderService::updateDomainInfo($sslInfos);
+
+        $sslInfos = collect($sslInfos)->map(function ($sslInfo) {
+            unset($sslInfo['page_id']);
+            return $sslInfo;
+        })->toArray();
 
         # remove database
         SslInfo::truncate();
         SslInfo::insert($sslInfos);
 
+
+        $today = Carbon::now();
+        $holidays = Yasumi::create('Japan', $today->format('Y'), 'ja_JP');
+
+        $isHoliday = $holidays->isHoliday($today);
+        $isThursday = $today->dayOfWeek === Carbon::THURSDAY;
+        $shouldNotify = !$isHoliday && $isThursday;
+
+        print_r([
+            '通知' => $shouldNotify ? 'Slack通知' : 'Slack通知なし',
+            'holiday' => $isHoliday ? '祝日' : '平日',
+            'thursday' => $isThursday ? '木曜日' : 'その他',
+            'today' => $today->format('Y-m-d'),
+        ]);
+
         # send slack notification if --notify option is set
-        if ($this->option('notify')) {
+        if ($shouldNotify) {
             SlackService::sslInfo($sslInfos);
         }
     }

@@ -72,7 +72,6 @@ class SlackService
         return '';
     }
 
-
     public static function sslInfo($list)
     {
         // if (env('APP_ENV') == 'dev') {

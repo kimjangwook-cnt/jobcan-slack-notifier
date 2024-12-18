@@ -40,14 +40,11 @@ Schedule::call(function () {
 
 // ssl 証明書の有効期限をチェックする
 Schedule::call(function () {
-    $today = Carbon::now();
-    $holidays = Yasumi::create('Japan', $today->format('Y'), 'ja_JP');
-
-    $isHoliday = $holidays->isHoliday($today);
-    $isWednesday = $today->dayOfWeek === Carbon::WEDNESDAY;
-    $shouldNotify = !$isHoliday && $isWednesday;
-
-    Artisan::call('app:get-ssl-info', ['--notify' => $shouldNotify]);
+    try {
+        Artisan::call('app:get-ssl-info');
+    } catch (\Exception $e) {
+        Log::error('SSL証明書の有効期限チェックに失敗しました', ['error' => $e->getMessage()]);
+    }
 })
     ->timezone('Asia/Tokyo')
     ->dailyAt('10:00')

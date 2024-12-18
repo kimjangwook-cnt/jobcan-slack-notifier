@@ -27,6 +27,7 @@ class SslCheckerService
     public static function checkCertificate(array $domains): array
     {
         $results = [];
+        $updatedAt = Carbon::now()->format('Y-m-d H:i:s');
         foreach ($domains as $domain) {
             try {
                 // SSL通信用のストリームコンテキストを作成
@@ -59,6 +60,9 @@ class SslCheckerService
                         "valid_from" => "ー",
                         "valid_to" => "ー",
                         "days_left" => "ー",
+                        "page_id" => $domain["page_id"],
+                        "created_at" => $updatedAt,
+                        "updated_at" => $updatedAt,
                     ];
                     continue;
                 }
@@ -80,6 +84,9 @@ class SslCheckerService
                         "valid_from" => "ー",
                         "valid_to" => "ー",
                         "days_left" => "ー",
+                        "page_id" => $domain["page_id"],
+                        "created_at" => $updatedAt,
+                        "updated_at" => $updatedAt,
                     ];
                     continue;
                 }
@@ -102,8 +109,9 @@ class SslCheckerService
                     "valid_from" => $validFrom,
                     "valid_to" => $validTo,
                     "days_left" => floor($daysLeft),
-                    "created_at" => Carbon::now()->format('Y-m-d H:i:s'),
-                    "updated_at" => Carbon::now()->format('Y-m-d H:i:s'),
+                    "page_id" => $domain["page_id"],
+                    "created_at" => $updatedAt,
+                    "updated_at" => $updatedAt,
                 ];
             } catch (Exception $e) {
                 print($e->getMessage());

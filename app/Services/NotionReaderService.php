@@ -71,6 +71,56 @@ class NotionReaderService
         }
     }
 
+    public static function updateDomainInfo($domainList = []): void
+    {
+        try {
+            $apiKey = config('env.notion_api_key');
+            $databaseId = config('env.ssl_info_notion_database_id');
+
+            $client = new Client([
+                'base_uri' => 'https://api.notion.com/v1/',
+            ]);
+
+            $headers = [
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Notion-Version' => '2022-06-28',
+                'Content-Type' => 'application/json',
+            ];
+
+            foreach ($domainList as $domain) {
+                $properties = [];
+                if ($domain['valid_to'] !== 'ー') {
+                    $properties['満了日時'] = [
+                        'date' => [
+                            'start' => $domain['valid_to'],
+                        ],
+                    ];
+                }
+                if ($domain['days_left'] !== 'ー') {
+                    $properties['期限切れまで'] = [
+                        'number' => $domain['days_left'],
+                    ];
+                }
+                if ($domain['updated_at'] !== 'ー') {
+                    $properties['最終更新日時'] = [
+                        'date' => [
+                            'start' => $domain['updated_at'],
+                        ],
+                    ];
+                }
+
+                $client->patch("pages/{$domain['page_id']}", [
+                    'headers' => $headers,
+                    'json' => (object)[
+                        'properties' => $properties,
+                    ],
+                ]);
+            }
+        } catch (GuzzleException $e) {
+            throw new \Exception("Notion API 요청 실패: " . $e->getMessage());
+        }
+    }
+
     public static function readDomainInfo($companyList = []): array
     {
         try {
@@ -110,6 +160,7 @@ class NotionReaderService
                     $companyName = collect($companyList)->firstWhere('id', $companyId)['site_name'] ?? '';
 
                     $results[] = [
+                        'page_id' => $page['id'],
                         'domain' => $page['properties']['対象ドメイン']['rich_text'][0]['text']['content'] ?? 'ー',
                         'site_name' => $page['properties']['サイト名']['title'][0]['text']['content'] ?? 'ー',
                         'company_name' => $companyName,
