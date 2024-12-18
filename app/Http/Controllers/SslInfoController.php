@@ -19,11 +19,10 @@ class SslInfoController extends Controller
 
     public function list(Request $request)
     {
-        $infoList = SslInfo::orderBy([
-            'days_left' => 'asc',
-            'company_name' => 'asc',
-            'site_name' => 'asc',
-        ])->get();
+        $infoList = SslInfo::orderBy('days_left', 'asc')
+            ->orderBy('company_name', 'asc')
+            ->orderBy('site_name', 'asc')
+            ->get();
         $lastUpdatedAt = $infoList->first()->updated_at->timezone('Asia/Tokyo')->format('Y-m-d H:i:s');
         return response()->json([
             'success' => true,
