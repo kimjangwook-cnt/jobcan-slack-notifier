@@ -8,6 +8,7 @@ use App\Services\SlackService;
 use App\Services\SslCheckerService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use Yasumi\Yasumi;
 
 class GetSslInfo extends Command
@@ -50,12 +51,20 @@ class GetSslInfo extends Command
         $holidays = Yasumi::create('Japan', $today->format('Y'), 'ja_JP');
 
         $isHoliday = $holidays->isHoliday($today);
-        $isThursday = $today->dayOfWeek === Carbon::THURSDAY;
-        $shouldNotify = !$isHoliday && $isThursday;
+        $isWednesday = $today->dayOfWeek === Carbon::WEDNESDAY;
+        $shouldNotify = !$isHoliday && $isWednesday;
 
         # send slack notification if --notify option is set
         if ($shouldNotify) {
+            Log::info('Domain SSL 情報をSlackに通知します');
             SlackService::sslInfo($sslInfos);
+        } else {
+            Log::info('Domain SSL 情報をSlackに通知しません', [
+                'today' => $today->format('Y-m-d'),
+                'isHoliday' => $isHoliday ? '○' : '×',
+                'isWednesday' => $isWednesday ? '○' : '×',
+                'shouldNotify' => $shouldNotify ? '○' : '×',
+            ]);
         }
     }
 }
