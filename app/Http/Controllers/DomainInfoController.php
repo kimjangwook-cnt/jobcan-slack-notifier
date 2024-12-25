@@ -12,7 +12,6 @@ class DomainInfoController extends Controller
     {
         $infoList = DomainInfo::orderBy('days_left', 'asc')
             ->orderBy('company_name', 'asc')
-            ->orderBy('site_name', 'asc')
             ->get();
         return response()->json([
             'success' => true,
