@@ -49,3 +49,15 @@ Schedule::call(function () {
     ->timezone('Asia/Tokyo')
     ->dailyAt('10:00')
     ->name('ssl-certificate-check');
+
+// ドメインの有効期限をチェックする
+Schedule::call(function () {
+    try {
+        Artisan::call('app:get-domain-info');
+    } catch (\Exception $e) {
+        Log::error('ドメインの有効期限チェックに失敗しました', ['error' => $e->getMessage()]);
+    }
+})
+    ->timezone('Asia/Tokyo')
+    ->dailyAt('10:00')
+    ->name('domain-check');
