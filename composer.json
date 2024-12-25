@@ -10,6 +10,7 @@
     "require": {
         "php": "^8.2",
         "azuyalabs/yasumi": "^2.7",
+        "io-developer/php-whois": "^4.1",
         "laravel/framework": "^11.9",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",

@@ -11,8 +11,9 @@ return [
     'ssl_webhook_url' => env('SSL_WEBHOOK_URL'),
     'admin_key' => env('ADMIN_KEY'),
     'notion_api_key' => env('NOTION_API_KEY'),
-    'ssl_info_notion_database_id' => env('SSL_INFO_NOTION_DATABASE_ID'),
     'company_info_notion_database_id' => env('COMPANY_INFO_NOTION_DATABASE_ID'),
+    'ssl_info_notion_database_id' => env('SSL_INFO_NOTION_DATABASE_ID'),
+    'domain_info_notion_database_id' => env('DOMAIN_INFO_NOTION_DATABASE_ID'),
     'allowed_ips' => [
         # LOCAL
         '127.0.0.1',

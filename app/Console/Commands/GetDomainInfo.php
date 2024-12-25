@@ -2,30 +2,30 @@
 
 namespace App\Console\Commands;
 
-use App\Models\SslInfo;
+use App\Models\DomainInfo;
+use App\Services\DomainCheckerService;
 use App\Services\NotionReaderService;
 use App\Services\SlackService;
-use App\Services\SslCheckerService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Yasumi\Yasumi;
 
-class GetSslInfo extends Command
+class GetDomainInfo extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'app:get-ssl-info';
+    protected $signature = 'app:get-domain-info';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'SSL証明書の情報を取得します。';
+    protected $description = 'ドメイン情報を取得します。';
 
     /**
      * Execute the console command.
@@ -33,18 +33,18 @@ class GetSslInfo extends Command
     public function handle()
     {
         $companyInfo = NotionReaderService::readCompanyInfo();
-        $domainInfo = NotionReaderService::readSslInfo($companyInfo);
-        $sslInfos = SslCheckerService::checkCertificate($domainInfo);
-        NotionReaderService::updateSslInfo($sslInfos);
+        $domainInfo = NotionReaderService::readDomainInfo($companyInfo);
+        $domainInfos = DomainCheckerService::check($domainInfo);
+        NotionReaderService::updateDomainInfo($domainInfos);
 
-        $sslInfos = collect($sslInfos)->map(function ($sslInfo) {
-            unset($sslInfo['page_id']);
-            return $sslInfo;
+        $domainInfos = collect($domainInfos)->map(function ($domainInfo) {
+            unset($domainInfo['page_id']);
+            return $domainInfo;
         })->toArray();
 
         # remove database
-        SslInfo::truncate();
-        SslInfo::insert($sslInfos);
+        DomainInfo::truncate();
+        DomainInfo::insert($domainInfos);
 
 
         $today = Carbon::now();
@@ -56,10 +56,10 @@ class GetSslInfo extends Command
 
         # send slack notification if --notify option is set
         if ($shouldNotify) {
-            Log::info('Domain SSL 情報をSlackに通知します');
-            SlackService::sslInfo($sslInfos);
+            Log::info('Domain情報をSlackに通知します');
+            SlackService::domainInfo($domainInfos);
         } else {
-            Log::info('Domain SSL 情報をSlackに通知しません', [
+            Log::info('Domain情報をSlackに通知しません', [
                 'today' => $today->format('Y-m-d'),
                 'isHoliday' => $isHoliday ? '○' : '×',
                 'isWednesday' => $isWednesday ? '○' : '×',

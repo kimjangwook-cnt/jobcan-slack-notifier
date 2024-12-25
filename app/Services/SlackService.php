@@ -81,7 +81,6 @@ class SlackService
         $slackWebhookUrl = config('env.ssl_webhook_url');
 
         $errorList = [];
-        $under120List = [];
         $under90List = [];
         $under60List = [];
         $under30List = [];
@@ -101,20 +100,15 @@ class SlackService
             if ($item['success'] == false) {
                 $label = "[SSL情報取得失敗] {$item['company_name']} - {$item['domain']}: ({$item['error']})";
                 $errorList[] = $makeListItem($label);
-            } else if ($item['days_left'] <= 120) {
-                $label = "[残り{$item['days_left']}日] {$item['company_name']} - {$item['domain']}";
-                if (env('APP_ENV') !== 'production') {
-                    $under120List[] = $makeListItem($label);
-                }
-            } else if ($item['days_left'] <= 90) {
-                $label = "[残り{$item['days_left']}日] {$item['company_name']} - {$item['domain']}";
-                $under90List[] = $makeListItem($label);
-            } else if ($item['days_left'] <= 60) {
-                $label = "[残り{$item['days_left']}日] {$item['company_name']} - {$item['domain']}";
-                $under60List[] = $makeListItem($label);
             } else if ($item['days_left'] <= 30) {
                 $label = "[残り{$item['days_left']}日] {$item['company_name']} - {$item['domain']}";
                 $under30List[] = $makeListItem($label);
+            } else if ($item['days_left'] <= 60) {
+                $label = "[残り{$item['days_left']}日] {$item['company_name']} - {$item['domain']}";
+                $under60List[] = $makeListItem($label);
+            } else if ($item['days_left'] <= 90) {
+                $label = "[残り{$item['days_left']}日] {$item['company_name']} - {$item['domain']}";
+                $under90List[] = $makeListItem($label);
             }
         }
 
@@ -203,11 +197,154 @@ class SlackService
 
 
         try {
-            if (count($errorList) > 0 || count($under120List) > 0 || count($under90List) > 0 || count($under60List) > 0 || count($under30List) > 0) {
+            if (count($errorList) > 0 || count($under90List) > 0 || count($under60List) > 0 || count($under30List) > 0) {
                 $response = Http::post($slackWebhookUrl, [
                     'blocks' => $blocks,
                 ]);
                 return $response->getBody()->getContents();
+            } else {
+                Log::info("Slack通知対象のSSL情報がありません");
+            }
+        } catch (\Exception $e) {
+            Log::error("Slack通知失敗: " . $e->getMessage());
+        }
+
+        return '';
+    }
+
+
+    public static function domainInfo($list)
+    {
+        // if (env('APP_ENV') == 'dev') {
+        //     return;
+        // }
+
+        $slackWebhookUrl = env('SLACK_DOMAIN_WEBHOOK_URL');
+
+        $errorList = [];
+        $under90List = [];
+        $under60List = [];
+        $under30List = [];
+        $makeListItem = function ($label) {
+            return [
+                'type' => 'rich_text_section',
+                'elements' => [
+                    [
+                        'type' => 'text',
+                        'text' => $label,
+                    ],
+                ],
+            ];
+        };
+
+        foreach ($list as $item) {
+            if ($item['days_left'] == 'ー') {
+                $label = "[有効期限取得失敗] {$item['company_name']} - {$item['domain']}";
+                $errorList[] = $makeListItem($label);
+            } else if ($item['days_left'] <= 30) {
+                $label = "[残り{$item['days_left']}日] {$item['company_name']} - {$item['domain']}";
+                $under30List[] = $makeListItem($label);
+            } else if ($item['days_left'] <= 60) {
+                $label = "[残り{$item['days_left']}日] {$item['company_name']} - {$item['domain']}";
+                $under60List[] = $makeListItem($label);
+            } else if ($item['days_left'] <= 90) {
+                $label = "[残り{$item['days_left']}日] {$item['company_name']} - {$item['domain']}";
+                $under90List[] = $makeListItem($label);
+            }
+        }
+
+        $blocks = [];
+        $makeRichText = function ($title, $list) {
+            return [
+                'type' => 'rich_text',
+                'elements' => [
+                    [
+                        "type" => "rich_text_section",
+                        "elements" => [
+                            [
+                                "type" => "text",
+                                "text" => $title,
+                            ],
+                        ]
+                    ],
+                    [
+                        'type' => 'rich_text_list',
+                        'style' => 'bullet',
+                        'elements' => $list,
+                    ],
+                ],
+            ];
+        };
+
+        $makeRichText2 = function ($title) {
+            return [
+                'type' => 'rich_text',
+                'elements' => [
+                    [
+                        "type" => "rich_text_section",
+                        "elements" => [
+                            [
+                                "type" => "text",
+                                "text" => $title,
+                            ],
+                        ]
+                    ],
+                    [
+                        'type' => 'rich_text_list',
+                        'style' => 'bullet',
+                        'elements' => [
+                            [
+                                'type' => 'rich_text_section',
+                                'elements' => [
+                                    [
+                                        'type' => 'text',
+                                        'text' => '該当なし',
+                                    ],
+                                ],
+                            ]
+                        ],
+                    ],
+                ],
+            ];
+        };
+
+        // if (count($under120List) > 0) {
+        //     $blocks[] = $makeRichText("期限切れまで[120日]\n", $under120List);
+        // } else {
+        //     $blocks[] = $makeRichText2("期限切れまで[120日]\n");
+        // }
+
+        if (count($under90List) > 0) {
+            $blocks[] = $makeRichText("期限切れまで[90日]\n", $under90List);
+        } else {
+            $blocks[] = $makeRichText2("期限切れまで[90日]\n");
+        }
+
+        if (count($under60List) > 0) {
+            $blocks[] = $makeRichText("期限切れまで[60日]\n", $under60List);
+        } else {
+            $blocks[] = $makeRichText2("期限切れまで[60日]\n");
+        }
+
+        if (count($under30List) > 0) {
+            $blocks[] = $makeRichText("期限切れまで[30日]\n", $under30List);
+        } else {
+            $blocks[] = $makeRichText2("期限切れまで[30日]\n");
+        }
+
+        if (count($errorList) > 0) {
+            $blocks[] = $makeRichText("[有効期限取得失敗]\n", $errorList);
+        }
+
+
+        try {
+            if (count($errorList) > 0 || count($under90List) > 0 || count($under60List) > 0 || count($under30List) > 0) {
+                $response = Http::post($slackWebhookUrl, [
+                    'blocks' => $blocks,
+                ]);
+                return $response->getBody()->getContents();
+            } else {
+                Log::info("Slack通知対象のドメイン情報がありません");
             }
         } catch (\Exception $e) {
             Log::error("Slack通知失敗: " . $e->getMessage());

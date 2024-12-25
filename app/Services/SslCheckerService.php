@@ -11,6 +11,13 @@ use Illuminate\Support\Facades\Log;
  */
 class SslCheckerService
 {
+    public static function checkCertificateOne($domain)
+    {
+        $results = self::checkCertificate([$domain]);
+        return $results[0];
+    }
+
+
     /**
      * SSL証明書の情報を確認します。
      *
