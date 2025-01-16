@@ -109,6 +109,18 @@ class NotionReaderService
                     ];
                 }
 
+                if ($domain['issued_by'] !== 'ー') {
+                    $properties['証明書発行者'] = [
+                        'rich_text' => [
+                            [
+                                'text' => [
+                                    'content' => $domain['issued_by'],
+                                ]
+                            ]
+                        ],
+                    ];
+                }
+
                 $client->patch("pages/{$domain['page_id']}", [
                     'headers' => $headers,
                     'json' => (object)[
