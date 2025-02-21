@@ -9,64 +9,92 @@ class SlackService
 {
     public static function completedRequest($list)
     {
-        // if (env('APP_ENV') == 'dev') {
-        //     return;
-        // }
+        $estimateFormIds = config('env.jobcan_estimate_form');
+        $costFormIds = config('env.jobcan_cost_form');
+        $contractFormIds = config('env.jobcan_contract_form');
 
-        $slackWebhookUrl = config('env.slack_webhook_url');
+        $estimateList = collect($list)->filter(function ($item) use ($estimateFormIds) {
+            return in_array($item['form_id'], $estimateFormIds);
+        })->values()->toArray();
+        $costList = collect($list)->filter(function ($item) use ($costFormIds) {
+            return in_array($item['form_id'], $costFormIds);
+        })->values()->toArray();
+        $contractList = collect($list)->filter(function ($item) use ($contractFormIds) {
+            return in_array($item['form_id'], $contractFormIds);
+        })->values()->toArray();
 
         $textList = [];
 
-        foreach ($list as $item) {
-            $id = $item['id'] ?? 'NO-ID';
-            $title = $item['title'] ?? 'タイトル取得不可';
-            $applicant = ($item['applicant_last_name'] ?? '') . ' ' . ($item['applicant_first_name'] ?? '');
+        foreach (
+            [
+                'jobcan_estimate_slack_url' => $estimateList,
+                'jobcan_cost_slack_url' => $costList,
+                'jobcan_contract_slack_url' => $contractList,
+            ] as $key => $list
+        ) {
+            $testFlg = env('APP_ENV') !== 'production';
+            $testLabel = $testFlg ? '【TEST用】' : '';
 
-            $textList[] = [
-                'type' => 'rich_text_section',
-                'elements' => [
-                    [
-                        'type' => 'link',
-                        'url' => "https://ssl.wf.jobcan.jp/#/requests/{$id}/",
-                        'text' => $title,
+            if ($testFlg && $key === 'jobcan_estimate_slack_url') {
+                continue;
+            }
+
+            if (count($list) === 0) {
+                continue;
+            }
+
+            foreach ($list as $item) {
+                $id = $item['id'] ?? 'NO-ID';
+                $title = $item['title'] ?? 'タイトル取得不可';
+                $applicant = ($item['applicant_last_name'] ?? '') . ' ' . ($item['applicant_first_name'] ?? '');
+
+                $textList[] = [
+                    'type' => 'rich_text_section',
+                    'elements' => [
+                        [
+                            'type' => 'link',
+                            'url' => "https://ssl.wf.jobcan.jp/#/requests/{$id}/",
+                            'text' => $title,
+                        ],
+                        [
+                            'type' => 'text',
+                            'text' => ": ({$applicant})",
+                        ],
                     ],
-                    [
-                        'type' => 'text',
-                        'text' => ": ({$applicant})",
+                ];
+            }
+
+            $blocks = [
+                [
+                    'type' => 'rich_text',
+                    'elements' => [
+                        [
+                            "type" => "rich_text_section",
+                            "elements" => [
+                                [
+                                    "type" => "text",
+                                    "text" => "{$testLabel}下記の申請が完了しました\n"
+                                ],
+                            ]
+                        ],
+                        [
+                            'type' => 'rich_text_list',
+                            'style' => 'bullet',
+                            'elements' => $textList,
+                        ],
                     ],
                 ],
             ];
-        }
 
-        $blocks = [
-            [
-                'type' => 'rich_text',
-                'elements' => [
-                    [
-                        "type" => "rich_text_section",
-                        "elements" => [
-                            [
-                                "type" => "text",
-                                "text" => "下記の申請が完了しました\n"
-                            ],
-                        ]
-                    ],
-                    [
-                        'type' => 'rich_text_list',
-                        'style' => 'bullet',
-                        'elements' => $textList,
-                    ],
-                ],
-            ],
-        ];
-
-        try {
-            $response = Http::post($slackWebhookUrl, [
-                'blocks' => $blocks,
-            ]);
-            return $response->getBody()->getContents();
-        } catch (\Exception $e) {
-            Log::error("Slack通知失敗: " . $e->getMessage());
+            try {
+                $url = config("env.{$key}");
+                $response = Http::post($url, [
+                    'blocks' => $blocks,
+                ]);
+                return $response->getBody()->getContents();
+            } catch (\Exception $e) {
+                Log::error("Slack通知失敗: " . $e->getMessage());
+            }
         }
 
         return '';

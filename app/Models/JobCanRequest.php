@@ -89,7 +89,7 @@ class JobCanRequest extends BaseModel
             if ($inDb->contains('id', $parsedInfo['id'])) {
                 $inDb->find($parsedInfo['id'])->update($parsedInfo);
             } else {
-                $targetForm = config('env.jobcan_target_form');
+                $targetForm = config('env.jobcan_form');
                 if (in_array($parsedInfo['form_id'], $targetForm)) {
                     $insertList[] = $parsedInfo;
                     JobCanRequest::create($parsedInfo);

@@ -44,8 +44,6 @@ class JobCanService
         $path = $path ?? 'v2/requests/?status=completed&completed_after=' . $completedAfter;
 
         try {
-
-
             $client = self::getClient();
             $response = $client->request('GET', $path);
 
