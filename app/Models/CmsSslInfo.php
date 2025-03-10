@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class SslInfo extends BaseModel
+class CmsSslInfo extends BaseModel
 {
 
     protected $casts = [

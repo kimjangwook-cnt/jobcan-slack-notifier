@@ -41,6 +41,11 @@ class SslCheckerService
                 $context = stream_context_create([
                     "ssl" => [
                         "capture_peer_cert" => true,
+
+                        'verify_peer' => false,
+                        'verify_peer_name' => false,
+                        'security_level' => 0,
+                        'verify_depth' => 0
                     ],
                 ]);
 
@@ -121,6 +126,7 @@ class SslCheckerService
                     "updated_at" => $updatedAt,
                 ];
             } catch (Exception $e) {
+                Log::info("{$domain['domain']}失敗: " . $e->getMessage());
                 print($e->getMessage());
             }
         }

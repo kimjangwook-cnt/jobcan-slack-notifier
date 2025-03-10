@@ -106,7 +106,7 @@ class SlackService
         //     return;
         // }
 
-        $slackWebhookUrl = config('env.ssl_webhook_url');
+        $slackWebhookUrl = env('APP_ENV') == 'local' ? config('env.slack_webhook_for_test') : config('env.ssl_webhook_url');
 
         $errorList = [];
         $under90List = [];
@@ -247,7 +247,7 @@ class SlackService
         //     return;
         // }
 
-        $slackWebhookUrl = env('SLACK_DOMAIN_WEBHOOK_URL');
+        $slackWebhookUrl = config('env.domain_webhook_url');
 
         $errorList = [];
         $under90List = [];

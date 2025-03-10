@@ -31,14 +31,21 @@ return [
         ...$jobcanCostForm,
         ...$jobcanContractForm,
     ],
-    'slack_webhook_url' => env('SLACK_WEBHOOK_URL'),
-    'ssl_webhook_url' => env('SSL_WEBHOOK_URL'),
+    'slack_webhook_url' => 'https://hooks.slack.com/services/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',
+    'slack_webhook_for_test' => 'https://hooks.slack.com/services/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',
+
     'admin_key' => env('ADMIN_KEY'),
     'notion_api_key' => env('NOTION_API_KEY'),
-    'company_info_notion_database_id' => env('COMPANY_INFO_NOTION_DATABASE_ID'),
-    'ssl_info_notion_database_id' => env('SSL_INFO_NOTION_DATABASE_ID'),
-    'domain_info_notion_database_id' => env('DOMAIN_INFO_NOTION_DATABASE_ID'),
-    'cms_ssl_info_notion_database_id' => env('CMS_SSL_INFO_NOTION_DATABASE_ID'),
+
+    'company_info_notion_database_id' => '1056a5225659800f9b85eaece05d1853',
+
+    'ssl_webhook_url' => 'https://hooks.slack.com/services/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',
+    'ssl_info_notion_database_id' => '15e6a522565980fba316ea78bc544d74',
+
+    'domain_webhook_url' => 'https://hooks.slack.com/services/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',
+    'domain_info_notion_database_id' => '1666a522565980d5aabee321bd11110f',
+
+    'cms_ssl_info_notion_database_id' => '1666a522565980efb0c8cc9e7e1b913f',
     'allowed_ips' => [
         # LOCAL
         '127.0.0.1',
@@ -53,5 +60,6 @@ return [
         '159.203.150.232',
         '45.55.124.124',
         '159.203.150.216',
+        '165.227.248.218',
     ],
 ];

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CmsSslInfo;
 use App\Models\SslInfo;
 use App\Services\SslCheckerService;
 use Illuminate\Http\Request;
@@ -19,17 +20,51 @@ class SslInfoController extends Controller
 
     public function list(Request $request)
     {
-        $infoList = SslInfo::orderBy('days_left', 'asc')
+        $sslInfos = SslInfo::orderBy('days_left', 'asc')
             ->orderBy('company_name', 'asc')
             ->orderBy('site_name', 'asc')
             ->get();
-        $lastUpdatedAt = $infoList->first()->updated_at->timezone('Asia/Tokyo')->format('Y-m-d H:i:s');
+
+        $cmsSslInfos = CmsSslInfo::orderBy('days_left', 'asc')
+            ->orderBy('company_name', 'asc')
+            ->orderBy('site_name', 'asc')
+            ->get();
+
+        $sslDomains = collect($sslInfos)->pluck('domain')->toArray();
+        $filteredCmsSslInfos = collect($cmsSslInfos)
+            ->filter(function ($info) use ($sslDomains) {
+                return !in_array($info['domain'], $sslDomains);
+            })
+            ->toArray();
+
+        $lastUpdatedAt = null;
+
+        $sslInfos = collect($sslInfos)->map(function ($info) use (&$lastUpdatedAt) {
+            $info['type'] = 'WEB';
+
+            if ($lastUpdatedAt == null) {
+                $lastUpdatedAt = $info['updated_at'];
+            }
+
+            return $info;
+        })->toArray();
+
+        $filteredCmsSslInfos = collect($filteredCmsSslInfos)->map(function ($info) {
+            $info['type'] = 'CMS';
+            return $info;
+        })->toArray();
+
+        $allInfoList = [
+            ...$sslInfos,
+            ...$filteredCmsSslInfos,
+        ];
+
         return response()->json([
             'success' => true,
             'message' => 'SSL証明書の確認に成功しました。',
             'data' => [
                 'last_updated_at' => $lastUpdatedAt,
-                'items' => $infoList,
+                'items' => $allInfoList,
             ],
             'error' => null,
         ]);

@@ -12,48 +12,42 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Yasumi\Yasumi;
 
-class GetSslInfo extends Command
+class GetCmsSslInfo extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'app:get-ssl-info';
+    protected $signature = 'app:get-cms-ssl-info';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'SSL証明書の情報を取得します。';
+    protected $description = 'CMSのSSL証明書の情報を取得します。';
 
     /**
      * Execute the console command.
      */
     public function handle()
     {
-        $companyInfo = NotionReaderService::readCompanyInfo();
-        $domainInfo = NotionReaderService::readSslInfo($companyInfo);
-        $sslInfos = SslCheckerService::checkCertificate($domainInfo);
-        NotionReaderService::updateSslInfo($sslInfos);
+        CmsSslInfo::truncate();
+        $sslInfos = NotionReaderService::readCmsSslInfo();
+        // NotionReaderService::updateCmsSslInfo($sslInfos);
 
         $sslInfos = collect($sslInfos)->map(function ($sslInfo) {
             unset($sslInfo['page_id']);
             return $sslInfo;
         })->toArray();
+        CmsSslInfo::insert($sslInfos);
+
+        Log::info("CMSのSSL証明書の情報を取得しました。\n" . json_encode($sslInfos, JSON_PRETTY_PRINT));
 
         # remove database
-        SslInfo::truncate();
-        SslInfo::insert($sslInfos);
-
-        $cmsSslInfos = NotionReaderService::readCmsSslInfo();
-        $cmsSslInfos = collect($cmsSslInfos)->map(function ($cmsSslInfo) {
-            unset($cmsSslInfo['page_id']);
-            return $cmsSslInfo;
-        })->toArray();
-        CmsSslInfo::truncate();
-        CmsSslInfo::insert($cmsSslInfos);
+        // SslInfo::truncate();
+        // SslInfo::insert($sslInfos);
 
 
         $today = Carbon::now();
@@ -63,23 +57,10 @@ class GetSslInfo extends Command
         $isWednesday = $today->dayOfWeek === Carbon::WEDNESDAY;
         $shouldNotify = !$isHoliday && $isWednesday;
 
-        $sslDomains = collect($sslInfos)->pluck('domain')->toArray();
-        $filteredCmsSslInfos = collect($cmsSslInfos)
-            ->filter(function ($info) use ($sslDomains) {
-                return !in_array($info['domain'], $sslDomains);
-            })
-            ->toArray();
-
-        $allSslInfos = [
-            ...$sslInfos,
-            ...$filteredCmsSslInfos,
-        ];
-
-
         # send slack notification if --notify option is set
         if ($shouldNotify) {
             Log::info('Domain SSL 情報をSlackに通知します');
-            SlackService::sslInfo($allSslInfos);
+            SlackService::sslInfo($sslInfos);
         } else {
             Log::info('Domain SSL 情報をSlackに通知しません', [
                 'today' => $today->format('Y-m-d'),
