@@ -91,7 +91,10 @@ class SlackService
                 $response = Http::post($url, [
                     'blocks' => $blocks,
                 ]);
-                return $response->getBody()->getContents();
+                $ret = $response->getBody()->getContents();
+
+                Log::info("Slack通知成功: " . $ret);
+                return $ret;
             } catch (\Exception $e) {
                 Log::error("Slack通知失敗: " . $e->getMessage());
             }
