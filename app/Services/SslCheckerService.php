@@ -75,6 +75,7 @@ class SslCheckerService
                         "page_id" => $domain["page_id"],
                         "created_at" => $updatedAt,
                         "updated_at" => $updatedAt,
+                        "auto_renewal" => $domain["auto_renewal"],
                     ];
                     continue;
                 }
@@ -99,6 +100,7 @@ class SslCheckerService
                         "page_id" => $domain["page_id"],
                         "created_at" => $updatedAt,
                         "updated_at" => $updatedAt,
+                        "auto_renewal" => $domain["auto_renewal"],
                     ];
                     continue;
                 }
@@ -124,6 +126,7 @@ class SslCheckerService
                     "page_id" => $domain["page_id"],
                     "created_at" => $updatedAt,
                     "updated_at" => $updatedAt,
+                    "auto_renewal" => $domain["auto_renewal"],
                 ];
             } catch (Exception $e) {
                 Log::info("{$domain['domain']}失敗: " . $e->getMessage());

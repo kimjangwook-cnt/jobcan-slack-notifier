@@ -176,12 +176,14 @@ class NotionReaderService
                 foreach ($data['results'] as $page) {
                     $companyId = $page['properties']['既存企業DB']['relation'][0]['id'] ?? '';
                     $companyName = collect($companyList)->firstWhere('id', $companyId)['site_name'] ?? '';
+                    $autoRenewal = $page['properties']['自動更新']['checkbox'] ?? false;
 
                     $results[] = [
                         'page_id' => $page['id'],
                         'domain' => $page['properties']['対象ドメイン']['rich_text'][0]['text']['content'] ?? 'ー',
                         'site_name' => $page['properties']['サイト名']['title'][0]['text']['content'] ?? 'ー',
                         'company_name' => $companyName,
+                        'auto_renewal' => $autoRenewal,
                     ];
                 }
 
@@ -237,22 +239,24 @@ class NotionReaderService
                 $data = json_decode($response->getBody(), true);
 
                 foreach ($data['results'] as $page) {
-                    Log::info(json_encode($page, JSON_PRETTY_PRINT));
+                    $status = $page['properties']['Status']['select']['name'] ?? null;
 
-                    $results[] = [
-                        'page_id' => $page['id'],
-                        'domain' => $page['properties']['対象ドメイン']['rich_text'][0]['text']['content'] ?? 'ー',
-                        'site_name' => $page['properties']['サイト名']['title'][0]['text']['content'] ?? 'ー',
-                        'success' => true,
-                        'company_name' => 'ー',
-                        'domain' => $page['properties']['Hostname']['title'][0]['text']['content'] ?? 'ー',
-                        'site_name' => 'ー',
-                        'issued_to' => null,
-                        'issued_by' => $page['properties']['SSL Issuer']['rich_text'][0]['text']['content'] ?? null,
-                        'valid_from' => null,
-                        'valid_to' => $page['properties']['Expiry Date']['date']['start'] ?? null,
-                        'days_left' => $page['properties']['Days Remaining']['number'] ?? null,
-                    ];
+                    if ($status === 'Warning') {
+                        $results[] = [
+                            'page_id' => $page['id'],
+                            'domain' => $page['properties']['対象ドメイン']['rich_text'][0]['text']['content'] ?? 'ー',
+                            'site_name' => $page['properties']['サイト名']['title'][0]['text']['content'] ?? 'ー',
+                            'success' => true,
+                            'company_name' => 'ー',
+                            'domain' => $page['properties']['Hostname']['title'][0]['text']['content'] ?? 'ー',
+                            'site_name' => 'ー',
+                            'issued_to' => null,
+                            'issued_by' => $page['properties']['SSL Issuer']['rich_text'][0]['text']['content'] ?? null,
+                            'valid_from' => null,
+                            'valid_to' => $page['properties']['Expiry Date']['date']['start'] ?? null,
+                            'days_left' => $page['properties']['Days Remaining']['number'] ?? null,
+                        ];
+                    }
                 }
 
                 $hasMore = $data['has_more'] ?? false;
