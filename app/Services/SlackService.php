@@ -108,6 +108,12 @@ class SlackService
         // if (env('APP_ENV') == 'dev') {
         //     return;
         // }
+        Log::info("SSL情報をSlackに通知します: " . count($list));
+
+        if (count($list) < 20000) {
+            Log::info("Slack通知対象のSSL情報がありません");
+            return '';
+        }
 
         $slackWebhookUrl = env('APP_ENV') == 'local' ? config('env.slack_webhook_for_test') : config('env.ssl_webhook_url');
 
@@ -249,6 +255,11 @@ class SlackService
         // if (env('APP_ENV') == 'dev') {
         //     return;
         // }
+
+        if (count($list) == 0) {
+            Log::info("Slack通知対象のドメイン情報がありません");
+            return '';
+        }
 
         $slackWebhookUrl = config('env.domain_webhook_url');
 

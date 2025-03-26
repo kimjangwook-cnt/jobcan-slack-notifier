@@ -30,6 +30,7 @@ class DomainCheckerService
             'expires_at' => $info->expirationDate ? Carbon::parse($info->expirationDate)->timezone('Asia/Tokyo')->format('Y-m-d H:i:s') : 'ー',
             'updated_at' => $info->updatedDate ? Carbon::parse($info->updatedDate)->timezone('Asia/Tokyo')->format('Y-m-d H:i:s') : 'ー',
             'days_left' => $daysLeft,
+            'auto_renewal' => $domain['auto_renewal'],
         ];
     }
 

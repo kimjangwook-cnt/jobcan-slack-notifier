@@ -19,7 +19,7 @@ class GetSslInfo extends Command
      *
      * @var string
      */
-    protected $signature = 'app:get-ssl-info {--test=false}';
+    protected $signature = 'app:get-ssl-info {--test=false} {--notify}';
 
     /**
      * The console command description.
@@ -77,7 +77,7 @@ class GetSslInfo extends Command
 
             $isHoliday = $holidays->isHoliday($today);
             $isWednesday = $today->dayOfWeek === Carbon::WEDNESDAY;
-            $shouldNotify = !$isHoliday && $isWednesday;
+            $shouldNotify = (!$isHoliday && $isWednesday) || $this->option('notify');
 
             $sslDomains = collect($sslInfos)->pluck('domain')->toArray();
             $filteredCmsSslInfos = collect($cmsSslInfos)

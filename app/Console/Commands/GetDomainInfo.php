@@ -18,7 +18,7 @@ class GetDomainInfo extends Command
      *
      * @var string
      */
-    protected $signature = 'app:get-domain-info';
+    protected $signature = 'app:get-domain-info {--notify}';
 
     /**
      * The console command description.
@@ -37,8 +37,11 @@ class GetDomainInfo extends Command
         $domainInfos = DomainCheckerService::check($domainInfo);
         NotionReaderService::updateDomainInfo($domainInfos);
 
-        $domainInfos = collect($domainInfos)->map(function ($domainInfo) {
+        $domainInfos = collect($domainInfos)->filter(function ($domainInfo) {
+            return $domainInfo['auto_renewal'] == false;
+        })->map(function ($domainInfo) {
             unset($domainInfo['page_id']);
+            unset($domainInfo['auto_renewal']);
             return $domainInfo;
         })->toArray();
 
@@ -52,7 +55,7 @@ class GetDomainInfo extends Command
 
         $isHoliday = $holidays->isHoliday($today);
         $isWednesday = $today->dayOfWeek === Carbon::WEDNESDAY;
-        $shouldNotify = !$isHoliday && $isWednesday;
+        $shouldNotify = (!$isHoliday && $isWednesday) || $this->option('notify');
 
         # send slack notification if --notify option is set
         if ($shouldNotify) {

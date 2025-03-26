@@ -314,12 +314,14 @@ class NotionReaderService
                 foreach ($data['results'] as $page) {
                     $companyId = $page['properties']['既存企業DB']['relation'][0]['id'] ?? '';
                     $companyName = collect($companyList)->firstWhere('id', $companyId)['site_name'] ?? '';
+                    $autoRenewal = $page['properties']['自動更新']['checkbox'] ?? false;
 
                     $results[] = [
                         'page_id' => $page['id'],
                         'domain' => $page['properties']['対象ドメイン']['title'][0]['text']['content'] ?? 'ー',
                         // 'site_name' => $page['properties']['サイト名']['title'][0]['text']['content'] ?? 'ー',
                         'company_name' => $companyName,
+                        'auto_renewal' => $autoRenewal,
                     ];
                 }
 
