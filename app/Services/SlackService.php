@@ -105,17 +105,34 @@ class SlackService
 
     public static function sslInfo($list)
     {
+        $slackWebhookUrl = env('APP_ENV') == 'local' ? config('env.slack_webhook_for_test') : config('env.ssl_webhook_url');
         // if (env('APP_ENV') == 'dev') {
         //     return;
         // }
         Log::info("SSL情報をSlackに通知します: " . count($list));
 
-        if (count($list) < 20000) {
+        if (count($list) == 0) {
             Log::info("Slack通知対象のSSL情報がありません");
-            return '';
+            $response = Http::post($slackWebhookUrl, [
+                'blocks' => [
+                    [
+                        'type' => 'rich_text',
+                        'elements' => [
+                            [
+                                "type" => "rich_text_section",
+                                "elements" => [
+                                    [
+                                        "type" => "text",
+                                        "text" => "通知対象のSSL情報がありません",
+                                    ],
+                                ]
+                            ],
+                        ],
+                    ],
+                ],
+            ]);
+            return $response->getBody()->getContents();
         }
-
-        $slackWebhookUrl = env('APP_ENV') == 'local' ? config('env.slack_webhook_for_test') : config('env.ssl_webhook_url');
 
         $errorList = [];
         $under90List = [];
@@ -255,13 +272,30 @@ class SlackService
         // if (env('APP_ENV') == 'dev') {
         //     return;
         // }
+        $slackWebhookUrl = config('env.domain_webhook_url');
 
         if (count($list) == 0) {
-            Log::info("Slack通知対象のドメイン情報がありません");
-            return '';
+            Log::info("Slack通知対象のDomain情報がありません");
+            $response = Http::post($slackWebhookUrl, [
+                'blocks' => [
+                    [
+                        'type' => 'rich_text',
+                        'elements' => [
+                            [
+                                "type" => "rich_text_section",
+                                "elements" => [
+                                    [
+                                        "type" => "text",
+                                        "text" => "通知対象のDomain情報がありません",
+                                    ],
+                                ]
+                            ],
+                        ],
+                    ],
+                ],
+            ]);
+            return $response->getBody()->getContents();
         }
-
-        $slackWebhookUrl = config('env.domain_webhook_url');
 
         $errorList = [];
         $under90List = [];
