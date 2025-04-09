@@ -33,18 +33,10 @@ class GetSslInfo extends Command
      */
     public function handle()
     {
-        $test = $this->option('test');
-        if ($test) {
-            $this->info('test mode');
-        }
-
         $companyInfo = NotionReaderService::readCompanyInfo();
         $domainInfo = NotionReaderService::readSslInfo($companyInfo);
         $sslInfos = SslCheckerService::checkCertificate($domainInfo);
-
-        if (!$test) {
-            NotionReaderService::updateSslInfo($sslInfos);
-        }
+        NotionReaderService::updateSslInfo($sslInfos);
 
         $sslInfos = collect($sslInfos)->filter(function ($sslInfo) {
             return $sslInfo['auto_renewal'] == false;
@@ -54,11 +46,10 @@ class GetSslInfo extends Command
             return $sslInfo;
         })->values()->toArray();
 
-        if (!$test) {
-            # remove database
-            SslInfo::truncate();
-            SslInfo::insert($sslInfos);
-        }
+        # remove database
+        SslInfo::truncate();
+        SslInfo::insert($sslInfos);
+
 
         $cmsSslInfos = NotionReaderService::readCmsSslInfo();
         $cmsSslInfos = collect($cmsSslInfos)->map(function ($cmsSslInfo) {
@@ -66,44 +57,40 @@ class GetSslInfo extends Command
             return $cmsSslInfo;
         })->toArray();
 
-        if (!$test) {
-            CmsSslInfo::truncate();
-            CmsSslInfo::insert($cmsSslInfos);
-        }
+        CmsSslInfo::truncate();
+        CmsSslInfo::insert($cmsSslInfos);
 
-        if (!$test) {
-            $today = Carbon::now();
-            $holidays = Yasumi::create('Japan', $today->format('Y'), 'ja_JP');
+        $today = Carbon::now();
+        $holidays = Yasumi::create('Japan', $today->format('Y'), 'ja_JP');
 
-            $isHoliday = $holidays->isHoliday($today);
-            $isWednesday = $today->dayOfWeek === Carbon::WEDNESDAY;
-            $shouldNotify = (!$isHoliday && $isWednesday) || $this->option('notify');
+        $isHoliday = $holidays->isHoliday($today);
+        $isWednesday = $today->dayOfWeek === Carbon::WEDNESDAY;
+        $shouldNotify = (!$isHoliday && $isWednesday) || $this->option('notify');
 
-            $sslDomains = collect($sslInfos)->pluck('domain')->toArray();
-            $filteredCmsSslInfos = collect($cmsSslInfos)
-                ->filter(function ($info) use ($sslDomains) {
-                    return !in_array($info['domain'], $sslDomains);
-                })
-                ->toArray();
+        $sslDomains = collect($sslInfos)->pluck('domain')->toArray();
+        $filteredCmsSslInfos = collect($cmsSslInfos)
+            ->filter(function ($info) use ($sslDomains) {
+                return !in_array($info['domain'], $sslDomains);
+            })
+            ->toArray();
 
-            $allSslInfos = [
-                ...$sslInfos,
-                ...$filteredCmsSslInfos,
-            ];
+        $allSslInfos = [
+            ...$sslInfos,
+            ...$filteredCmsSslInfos,
+        ];
 
 
-            # send slack notification if --notify option is set
-            if ($shouldNotify) {
-                Log::info('Domain SSL 情報をSlackに通知します');
-                SlackService::sslInfo($allSslInfos);
-            } else {
-                Log::info('Domain SSL 情報をSlackに通知しません', [
-                    'today' => $today->format('Y-m-d'),
-                    'isHoliday' => $isHoliday ? '○' : '×',
-                    'isWednesday' => $isWednesday ? '○' : '×',
-                    'shouldNotify' => $shouldNotify ? '○' : '×',
-                ]);
-            }
+        # send slack notification if --notify option is set
+        if ($shouldNotify) {
+            Log::info('Domain SSL 情報をSlackに通知します');
+            SlackService::sslInfo($allSslInfos);
+        } else {
+            Log::info('Domain SSL 情報をSlackに通知しません', [
+                'today' => $today->format('Y-m-d'),
+                'isHoliday' => $isHoliday ? '○' : '×',
+                'isWednesday' => $isWednesday ? '○' : '×',
+                'shouldNotify' => $shouldNotify ? '○' : '×',
+            ]);
         }
     }
 }
