@@ -22,6 +22,9 @@ class WebpConverterController extends Controller
 
     public function convert(Request $request)
     {
+        // 出力バッファリング開始
+        ob_start();
+
         Log::info('リクエスト: ' . json_encode($request->all()));
         $max = 1024 * 1024 * 1024; // 1GB
 
@@ -43,6 +46,9 @@ class WebpConverterController extends Controller
             $outputZip = $this->webpConvertService->convertZipToWebp($request->file('zip_file'), $request->quality);
             Log::info('変換が成功しました: ' . $outputZip);
 
+            // バッファクリア
+            ob_clean();
+
             return response()->json([
                 'success' => true,
                 'message' => '変換が成功しました',
@@ -53,6 +59,9 @@ class WebpConverterController extends Controller
                 'error' => null,
             ]);
         } catch (\Exception $e) {
+            // バッファクリア
+            ob_clean();
+
             Log::error('処理中にエラーが発生しました: ' . $e->getMessage() . "\n" . json_encode(collect($e->getTrace())->map(function ($item) {
                 if (isset($item['class'])) {
                     return 'class: ' . "(line => " . ($item['line'] ?? '?') . ")" . $item['class'];
@@ -72,11 +81,17 @@ class WebpConverterController extends Controller
                 'data' => null,
                 'error' => $e->getMessage(),
             ]);
+        } finally {
+            // バッファ終了
+            ob_end_clean();
         }
     }
 
     public function convertFiles(Request $request)
     {
+        // 出力バッファリング開始
+        ob_start();
+
         Log::info('リクエスト: ' . json_encode($request->all()));
         $max = 1024 * 1024 * 1024; // 1GB
 
@@ -107,7 +122,7 @@ class WebpConverterController extends Controller
                     throw new \Exception('変換に失敗しました。');
                 }
                 $outputFiles[] = $outputFile;
-                $originalNames[] = pathinfo($imageFile->getClientOriginalName(), PATHINFO_FILENAME) . '.webp'; // 원본 파일 이름 저장
+                $originalNames[] = pathinfo($imageFile->getClientOriginalName(), PATHINFO_FILENAME) . '.webp'; // オリジナルファイル名を保存
             }
 
             // ZIPファイル作成
@@ -131,6 +146,9 @@ class WebpConverterController extends Controller
 
             Log::info('変換成功: ' . $zipFileName);
 
+            // バッファクリア
+            ob_clean();
+
             return response()->json([
                 'success' => true,
                 'message' => '変換に成功しました',
@@ -141,6 +159,9 @@ class WebpConverterController extends Controller
                 'error' => null,
             ]);
         } catch (\Exception $e) {
+            // バッファクリア
+            ob_clean();
+
             Log::error('処理中にエラーが発生しました: ' . $e->getMessage() . "\n" . json_encode(collect($e->getTrace())->map(function ($item) {
                 if (isset($item['class'])) {
                     return 'class: ' . "(line => " . ($item['line'] ?? '?') . ")" . $item['class'];
@@ -161,6 +182,9 @@ class WebpConverterController extends Controller
                 'error' => $e->getMessage(),
             ]);
         } finally {
+            // バッファ終了
+            ob_end_clean();
+
             // 一時ファイルの削除
             if (isset($outputFiles)) {
                 foreach ($outputFiles as $file) {

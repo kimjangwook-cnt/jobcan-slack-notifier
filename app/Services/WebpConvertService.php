@@ -150,44 +150,88 @@ class WebpConvertService
      */
     private function convertImageToWebp(\SplFileInfo $file, string $extension, int $quality): string | null
     {
-        // 画像ファイルの検証を追加
-        if (!$this->isValidImage($file->getPathname())) {
-            $this->conversionErrors[] = str_replace(storage_path("app/temp/" . $this->uniqid) . '/', '', $file->getPathname()) . " - 無効な画像ファイル";
+        if (!extension_loaded('imagick')) {
+            Log::error("Imagick拡張がインストールされていません。");
             return null;
         }
 
-        $image = $this->createImageResource($file, $extension);
-        if (!$image) {
-            $this->conversionErrors[] = str_replace(storage_path("app/temp/" . $this->uniqid) . '/', '', $file->getPathname()) . " - 画像リソースの作成に失敗";
+        try {
+            // Imagickインスタンスを作成
+            $imagick = new \Imagick($file->getPathname());
+
+            // 画像の最適化設定
+            $imagick->setImageCompressionQuality($quality);
+            $imagick->stripImage(); // メタデータを削除
+
+            // 大きすぎる画像をリサイズ
+            $maxDimension = 4096;
+            $width = $imagick->getImageWidth();
+            $height = $imagick->getImageHeight();
+
+            if ($width > $maxDimension || $height > $maxDimension) {
+                $ratio = min($maxDimension / $width, $maxDimension / $height);
+                $newWidth = (int)($width * $ratio);
+                $newHeight = (int)($height * $ratio);
+                $imagick->resizeImage($newWidth, $newHeight, \Imagick::FILTER_LANCZOS, 1);
+            }
+
+            // アニメーション画像の場合の処理
+            if ($imagick->getNumberImages() > 1) {
+                $imagick = $this->handleAnimatedImage($imagick);
+            }
+
+            // WebP形式に変換
+            $imagick->setImageFormat('webp');
+
+            // WebPの詳細設定
+            $imagick->setOption('webp:lossless', 'false');
+            $imagick->setOption('webp:method', '6'); // 圧縮レベル（0-6）
+            $imagick->setOption('webp:alpha-quality', '100');
+
+            // 新しいファイルパスを設定
+            $newPath = $file->getPath() . '/' . $file->getBasename('.' . $extension) . '.webp';
+
+            // ファイルを保存
+            $imagick->writeImage($newPath);
+            $imagick->clear();
+            $imagick->destroy();
+
+            // 元のファイルを削除
+            unlink($file->getPathname());
+
+            return $newPath;
+        } catch (\Exception $e) {
+            Log::error("Imagickによる変換に失敗: " . $e->getMessage());
+            $this->conversionErrors[] = str_replace(storage_path("app/temp/" . $this->uniqid) . '/', '', $file->getPathname()) . " - 変換に失敗: " . $e->getMessage();
             return null;
         }
+    }
 
-        // トゥルーカラー画像に変換
-        $width = imagesx($image);
-        $height = imagesy($image);
-        $trueColorImage = imagecreatetruecolor($width, $height);
+    /**
+     * アニメーション画像の処理
+     *
+     * @param \Imagick $imagick Imagickインスタンス
+     * @return \Imagick 処理後のImagickインスタンス
+     */
+    private function handleAnimatedImage(\Imagick $imagick): \Imagick
+    {
+        try {
+            // アニメーションを維持する場合
+            $imagick->setFirstIterator();
+            do {
+                $imagick->setImageCompressionQuality($quality);
+                $imagick->stripImage();
+            } while ($imagick->nextImage());
 
-        // アルファチャンネルサポートの設定
-        imagealphablending($trueColorImage, false);
-        imagesavealpha($trueColorImage, true);
-
-        // 元の画像をトゥルーカラー画像にコピー
-        imagecopy($trueColorImage, $image, 0, 0, 0, 0, $width, $height);
-        imagedestroy($image);
-
-        // WebP形式で保存
-        $newPath = $file->getPath() . '/' . $file->getBasename('.' . $extension) . '.webp';
-        if (!imagewebp($trueColorImage, $newPath, $quality)) {
-            Log::error("WebP形式への変換に失敗: " . $file->getPathname());
-            $this->conversionErrors[] = str_replace(storage_path("app/temp/" . $this->uniqid) . '/', '', $file->getPathname()) . " - WebP形式への変換に失敗";
-            imagedestroy($trueColorImage);
-            return null;
+            return $imagick;
+        } catch (\Exception $e) {
+            // アニメーションの処理に失敗した場合は最初のフレームのみを使用
+            Log::warning("アニメーション処理に失敗。最初のフレームのみを使用: " . $e->getMessage());
+            $firstFrame = $imagick->getImage();
+            $imagick->clear();
+            $imagick->destroy();
+            return $firstFrame;
         }
-
-        imagedestroy($trueColorImage);
-        unlink($file->getPathname());
-
-        return $newPath;
     }
 
     /**
